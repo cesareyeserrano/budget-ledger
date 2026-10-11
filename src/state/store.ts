@@ -5,6 +5,8 @@ import type { LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
+  // BG-095: el ensayo de «¿este cambio de estructura toca un mes cerrado?», antes de guardar.
+  structureChangeTouchesClosed,
   addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, seedSeqFrom,
   // saldo-de-bolsillo: el retiro PLANEADO por alcancía, anotado desde el formulario Pres.
   planRetiro, editPlannedRetiro,
@@ -235,8 +237,9 @@ interface LedgerStore {
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
-  deleteNode: (id: string) => "ok" | DeleteBlock;
-  moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target" | "would_overflow";
+  /** `closed_period` (BG-095): el cambio tocaría cifras de un mes cerrado; no se aplicó y ya se avisó. */
+  deleteNode: (id: string) => "ok" | DeleteBlock | "closed_period";
+  moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target" | "would_overflow" | "closed_period";
   setLeafAmount: (leafId: string, month: PeriodKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
   hydrate: () => Promise<void>;
@@ -286,6 +289,16 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   // carga POSTERIOR a ella: una lectura que ya viajaba con la foto de antes no trae lo del otro dispositivo.
   let revisionEnConflicto = 0;
   const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
+  // BG-095 — un cambio de estructura que el servidor rechazaría por el cierre no se envía.
+  const TOCA_CERRADO = "Ese cambio tocaría cifras de un mes cerrado: no se hizo. Reábrelo primero.";
+  /**
+   * BG-095 — un rechazo DEFINITIVO descarta la cola de guardado: el snapshot pendiente contiene también
+   * el cambio rechazado, así que no se puede enviar tal cual. Si en esa cola había algo más (lo que el
+   * usuario hizo mientras el guardado viajaba), se pierde con ella; antes el aviso solo hablaba del
+   * rechazo. Ahora lo dice, para que el usuario lo repita en vez de darlo por guardado.
+   */
+  const conLoPosterior = (aviso: string, habiaMas: boolean) =>
+    habiaMas ? `${aviso} Tampoco lo que hiciste justo después: revísalo y repítelo.` : aviso;
   const CONFLICTO_SIN_RECARGA = "Otro dispositivo guardó cambios, pero no se pudo recargar su versión.";
   // Cuántas cargas del servidor se han adoptado, y cuántas sesiones se han olvidado. Una respuesta que
   // llega tarde se compara contra estos contadores: si entre tanto se adoptó otra carga, o la sesión
@@ -492,13 +505,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           // guardar» y el usuario reintentaría eternamente algo que jamás se va a aceptar.
           const periodos = repo.closedViolation;
           repo.closedViolation = null;
+          const habiaMas = pendingSave !== null;
           pendingSave = null;
           await doResync();
-          get().showToast(
+          get().showToast(conLoPosterior(
             periodos.length === 1
               ? `Ese mes está cerrado: el cambio no se guardó.`
-              : `Esos meses están cerrados: el cambio no se guardó.`
-          );
+              : `Esos meses están cerrados: el cambio no se guardó.`,
+            habiaMas
+          ));
           return;
         }
         if (repo.cellMismatch) {
@@ -508,13 +523,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           // guardar» y el usuario reintentaría para siempre.
           const celdas = repo.cellMismatch;
           repo.cellMismatch = null;
+          const habiaMas = pendingSave !== null;
           pendingSave = null;
           await doResync();
-          get().showToast(
+          get().showToast(conLoPosterior(
             celdas.length === 1
               ? "Esa celda no cuadra con sus movimientos: el cambio no se guardó."
-              : "Esas celdas no cuadran con sus movimientos: el cambio no se guardó."
-          );
+              : "Esas celdas no cuadran con sus movimientos: el cambio no se guardó.",
+            habiaMas
+          ));
           return;
         }
         if (repo.definitiveRejection) {
@@ -522,13 +539,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           // el estado rechazado se quedaba en memoria y cada guardado posterior fallaba igual.
           const motivo = repo.definitiveRejection;
           repo.definitiveRejection = null;
+          const habiaMas = pendingSave !== null;
           pendingSave = null;
           await doResync();
-          get().showToast(
+          get().showToast(conLoPosterior(
             motivo === "period_mismatch"
               ? "Una fecha no corresponde a su periodo: el cambio no se guardó."
-              : "El cambio dejaba una reserva por encima de lo permitido: no se guardó."
-          );
+              : "El cambio dejaba una reserva por encima de lo permitido: no se guardó.",
+            habiaMas
+          ));
           return;
         }
         if (repo.conflicted) {
@@ -1074,6 +1093,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const prev = get().data;
       const data = createNode(prev, input);
       if (data === prev) return null; // rechazado (forma inválida)
+      // BG-095: el primer hijo de una hoja se lleva sus cifras; si alguna es de un mes cerrado, el
+      // servidor rechazaría el guardado. No se aplica ni se envía.
+      if (structureChangeTouchesClosed(prev, data)) { get().showToast(TOCA_CERRADO); return null; }
       set({ data });
       persist(data);
       return data.nodes[data.nodes.length - 1]?.id ?? null;
@@ -1089,15 +1111,19 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       persist(data);
     },
     deleteNode: (id) => {
-      const res = deleteNode(get().data, id, get().activePeriods());
+      const prev = get().data;
+      const res = deleteNode(prev, id, get().activePeriods());
       if ("blocked" in res) return res.blocked;
+      if (structureChangeTouchesClosed(prev, res.state)) { get().showToast(TOCA_CERRADO); return "closed_period"; } // BG-095
       set({ data: res.state });
       persist(res.state);
       return "ok";
     },
     moveNode: (id, dest) => {
-      const res = moveNode(get().data, id, dest);
+      const prev = get().data;
+      const res = moveNode(prev, id, dest);
       if ("rejected" in res) return res.rejected;
+      if (structureChangeTouchesClosed(prev, res.state)) { get().showToast(TOCA_CERRADO); return "closed_period"; } // BG-095
       set({ data: res.state });
       persist(res.state);
       return "ok";

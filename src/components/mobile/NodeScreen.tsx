@@ -168,8 +168,9 @@ export function NodeScreen({ node }: { node: LedgerNode }) {
   const remove = () => {
     const res = deleteNode(node.id);
     if (res !== "ok") {
-      // Quedó bloqueado entre abrir la confirmación y confirmar (cambio desde otra sesión).
-      setRefused(res);
+      // Quedó bloqueado entre abrir la confirmación y confirmar (cambio desde otra sesión). Si fue por
+      // el cierre (BG-095), el motivo ya se deriva del estado; los demás se guardan para mostrarlos.
+      if (res !== "closed_period") setRefused(res);
       return;
     }
     showToast(noun.deleted);

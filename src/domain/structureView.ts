@@ -206,3 +206,22 @@ export function deleteTouchesClosed(state: LedgerState, id: string, periods: rea
   const trial = deleteNode(state, id, periods);
   return "state" in trial && closedPeriodsViolated(state, trial.state).length > 0;
 }
+
+/**
+ * Si pasar de `prev` a `next` cambiaría cifras o movimientos de un periodo cerrado (BG-095).
+ *
+ * Es el guardia del servidor, con nombre propio para el uso que le da el cliente: las acciones de
+ * estructura del store (crear, mover, borrar) lo consultan ANTES de aplicar y guardar, para no enviar
+ * un snapshot que el servidor va a rechazar. Un rechazo definitivo descarta la cola de guardado, y con
+ * ella lo que el usuario haya hecho justo después.
+ *
+ * @param prev Estado antes del cambio.
+ * @param next Estado que el cambio produciría.
+ * @returns true si algún periodo cerrado quedaría distinto.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2003, US-ID: US-2003, AC-ID: AC-2010, TC-ID: BG-095
+ */
+export function structureChangeTouchesClosed(prev: LedgerState, next: LedgerState): boolean {
+  return closedPeriodsViolated(prev, next).length > 0;
+}

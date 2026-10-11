@@ -732,15 +732,24 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // teléfono: al abrir «Mover a…», al abrir un alta y al tocar «Borrar». Sin eso el teléfono anunciaba
     // como hechas operaciones que el servidor iba a rechazar. Lo que este caso protege sigue en pie: la
     // ruta CALIENTE —la lista del periodo, la grilla y el store— no lo alcanza.
+    //
+    // Desde BG-095 (10-oct-2026) lo ensayan también tres ACCIONES del store —crear, mover y borrar un
+    // elemento de la estructura— antes de aplicar y guardar, para no enviar un snapshot que el servidor
+    // va a rechazar: ese rechazo descarta la cola de guardado y con ella lo que el usuario hizo justo
+    // después. Corre una vez por acción del usuario, no al pintar.
     const viaEstructura = execSync(
-      'grep -rlE "moveDestinations|createTouchesClosed|deleteTouchesClosed" src/components src/state src/app 2>/dev/null || true',
+      'grep -rlE "moveDestinations|createTouchesClosed|deleteTouchesClosed|structureChangeTouchesClosed" src/components src/state src/app 2>/dev/null || true',
       { encoding: "utf8" }
     ).trim().split("\n").filter(Boolean).sort();
     expect(viaEstructura).toEqual([
       "src/components/mobile/MoveScreen.tsx",
       "src/components/mobile/NewNodeScreen.tsx",
       "src/components/mobile/NodeScreen.tsx",
+      "src/state/store.ts",
     ]);
+    // En el store, solo esas tres acciones: el import y tres usos, ninguno en un selector ni en un hook.
+    const usosEnStore = execSync('grep -c "structureChangeTouchesClosed" src/state/store.ts', { encoding: "utf8" }).trim();
+    expect(usosEnStore).toBe("4");
     expect(readFileSync("src/server/data/ledgerRepo.ts", "utf8")).toContain('import "server-only"');
   });
 });

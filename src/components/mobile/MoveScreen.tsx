@@ -50,7 +50,7 @@ export function MoveScreen({ node }: { node: LedgerNode }) {
     if (o.status !== "ok") return;
     const res = moveNode(node.id, o.dest);
     if (res !== "ok") {
-      setRejected({ key: keyOf(o), text: res === "would_overflow" ? OVERFLOW_TEXT : GONE_TEXT });
+      setRejected({ key: keyOf(o), text: res === "would_overflow" ? OVERFLOW_TEXT : res === "closed_period" ? CLOSED_TEXT : GONE_TEXT });
       return;
     }
     showToast(o.nodeId === null ? `Ahora es un grupo de ${TYPE_MANY[node.type]}` : `Movido a ${o.name}`);
