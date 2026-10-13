@@ -89,6 +89,9 @@ export default async function globalSetup(): Promise<void> {
     LEDGER_RATE_LIMIT_DISABLED: "true",
     // BG-048: el interruptor de arriba solo actúa con la puerta de pruebas abierta.
     LEDGER_TEST_OVERRIDES: "1",
+    // Feature tony-ledger: la puerta para agentes encendida, para probarla contra el servidor REAL
+    // (las cabeceras que añade Next no existen en las pruebas en proceso).
+    LEDGER_AGENT_API: "on",
   };
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 

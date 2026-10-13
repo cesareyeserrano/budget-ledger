@@ -7,17 +7,23 @@
  * Dependencies: ./ledgerRepo, @/domain
  */
 import "server-only";
-import { calendarOf, loadLedger, serverScope } from "./ledgerRepo";
+import {
+  calendarOf, insertMovementWith, loadLedger, serverScope, writeMovementWith,
+  type InsertMovementResult, type InsertPlan, type MovementWriteResult,
+} from "./ledgerRepo";
+import { deleteMovement, editMovement, type MovementPatch } from "@/domain/adjust";
 import { findNode, isLeaf, subtreeIds } from "@/domain/tree";
 import { rollupTable, typeTotals } from "@/domain/rollup";
 import { balanceAt, computeBalanceSeries } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
-import { reserveLeafIds, resolvedBalance } from "@/domain/reserve";
+import { isAvailable, reserveLeafIds, resolvedBalance, undoReserveOp } from "@/domain/reserve";
 import { isClosed } from "@/domain/closure";
 import { isPeriodKey, monthOf } from "@/domain/periods";
-import { isCalendarDay } from "@/domain/validation";
+import { PERIOD_KEY, isCalendarDay } from "@/domain/validation";
 import type { Calendar } from "@/domain/cycles";
 import type { LedgerNode, LedgerState, Movement, NodeLevel, NodeType, PeriodKey, PeriodMode } from "@/domain";
+import type { AgentMovementInput, AgentPatchInput } from "../agent/schemas";
+import { REF_KEY_PREFIX } from "../agent/schemas";
 
 /** Un nodo del árbol tal como lo ve el agente. */
 export interface AgentNode {
@@ -188,7 +194,9 @@ export async function agentPeriodOf(ownerId: string, date: string | null): Promi
 function periodOfDate(state: LedgerState, date: string): PeriodKey | null {
   try {
     // La fecha amplía las cotas del calendario: un día posterior al último dato sigue teniendo periodo.
-    return calendarOf(state, date.slice(0, 7) as PeriodKey).periodForDate(date);
+    const period = calendarOf(state, date.slice(0, 7) as PeriodKey).periodForDate(date);
+    // Y el periodo tiene que ser uno que el resto del sistema acepte (año dentro del rango válido).
+    return PERIOD_KEY.safeParse(period).success ? period : null;
   } catch {
     return null;
   }
@@ -304,4 +312,166 @@ export async function agentSummary(
   const period = resolvePeriod(loaded.state, rawPeriod, today);
   if (period === "invalid_period") return "invalid_period";
   return buildSummary(loaded.state, loaded.revision, period);
+}
+
+// ── Escrituras (EP-03) ─────────────────────────────────────────────────────────────────────────
+
+/** Quién escribe: el token ya resuelto por el envoltorio. */
+export interface AgentIdentity {
+  tokenId: string;
+  tokenName: string;
+}
+
+/** Salidas tempranas de un registro: la referencia ya existe, o el dato no se puede resolver. */
+export type AgentInsertEarly =
+  | { kind: "existing"; movement: Movement; revision: number }
+  | { kind: "conflict"; movement: Movement }
+  | { kind: "invalid_date" }
+  | { kind: "invalid_target" };
+
+/** Lo que devuelve registrar por la puerta del agente, con los nodos para nombrar la hoja. */
+export interface AgentInsertOutcome {
+  result: InsertMovementResult | { early: AgentInsertEarly };
+  nodes: LedgerNode[];
+}
+
+/**
+ * La hoja de gasto o ingreso, como el par categoría/subcategoría que guarda un movimiento: una
+ * subcategoría va con su categoría; una categoría-hoja va sola. Es la misma forma que arma la app.
+ * @param nodo la hoja destino
+ * @returns `{ catId, subId }`
+ * @aitri-trace FR-ID: FR-3408, US-ID: US-3408, AC-ID: AC-3408a, TC-ID: TC-AGT-087e
+ */
+export function targetToCatSub(nodo: LedgerNode): { catId: string; subId: string | null } {
+  return nodo.level === "sub" && nodo.parentId ? { catId: nodo.parentId, subId: nodo.id } : { catId: nodo.id, subId: null };
+}
+
+/** La hoja que una operación de bolsillo afecta: el retiro, su origen; el aporte y el mover, su destino. */
+function pocketTarget(from: string, to: string): string {
+  return isAvailable(to) ? from : to;
+}
+
+/** ¿El registro que llega es EL MISMO que el ya guardado con esa referencia? La nota no cuenta. */
+function mismoRegistro(guardado: Movement, body: AgentMovementInput): boolean {
+  if (guardado.type !== body.type || guardado.amount !== body.amount || (guardado.date ?? null) !== body.date) return false;
+  if (body.type === "transfer") return guardado.from === body.from && guardado.to === body.to;
+  return guardado.target === body.target;
+}
+
+/**
+ * Registra un gasto, un ingreso o una operación de bolsillo en nombre de un agente (FR-3408,
+ * FR-3409, FR-3410). El periodo sale de la fecha con el calendario de la cuenta; la referencia de
+ * origen hace el registro idempotente: si ya existe con el mismo contenido no se escribe nada, y
+ * si existe con otro contenido es un conflicto. Todo ocurre con la fila del libro bloqueada, así
+ * que dos registros simultáneos con la misma referencia dejan uno.
+ *
+ * @param ownerId la cuenta del token
+ * @param who el token que registra (queda como marca del movimiento)
+ * @param body el cuerpo ya validado por `agentMovementSchema`
+ * @returns el resultado del repositorio (o la salida temprana) y los nodos de la cuenta
+ * @throws si la base falla; la transacción revierte entera
+ * @aitri-trace FR-ID: FR-3409, US-ID: US-3409, AC-ID: AC-3409a, TC-ID: TC-AGT-090h, TC-AGT-091e, TC-AGT-092f, TC-AGT-097e
+ * @aitri-trace FR-ID: FR-3410, US-ID: US-3410, AC-ID: AC-3410a, TC-ID: TC-AGT-100h, TC-AGT-103f, TC-AGT-104f, TC-AGT-105f
+ */
+export async function agentInsert(ownerId: string, who: AgentIdentity, body: AgentMovementInput): Promise<AgentInsertOutcome> {
+  let nodes: LedgerNode[] = [];
+  const result = await insertMovementWith<AgentInsertEarly>(ownerId, (prev, revision): InsertPlan<AgentInsertEarly> => {
+    nodes = prev.nodes;
+    const guardado = prev.movements.find((m) => m.origin?.ref === body.ref);
+    if (guardado) {
+      return { early: mismoRegistro(guardado, body) ? { kind: "existing", movement: guardado, revision } : { kind: "conflict", movement: guardado } };
+    }
+    const period = periodOfDate(prev, body.date);
+    if (!period) return { early: { kind: "invalid_date" } };
+
+    const origin = { ref: body.ref, agentId: who.tokenId, agentName: who.tokenName };
+    const comun = { amount: body.amount, period, date: body.date, ...(body.note !== undefined ? { note: body.note } : {}) };
+    if (body.type === "transfer") {
+      const hoja = pocketTarget(body.from, body.to);
+      return { input: { type: "transfer", catId: hoja, from: body.from, to: body.to, ...comun }, origin };
+    }
+    const nodo = findNode(prev.nodes, body.target);
+    if (!nodo) return { early: { kind: "invalid_target" } };
+    return { input: { type: body.type, ...targetToCatSub(nodo), ...comun }, origin };
+  });
+  return { result, nodes };
+}
+
+/**
+ * Localiza un movimiento por la clave de la ruta: su id, o `ref:` + su referencia de origen.
+ * @param key lo que vino en la URL (ya decodificado)
+ * @returns la función que lo busca en el estado del dueño
+ */
+export function locateByKey(key: string): (state: LedgerState) => Movement | undefined {
+  if (key.startsWith(REF_KEY_PREFIX)) {
+    const ref = key.slice(REF_KEY_PREFIX.length);
+    return (state) => state.movements.find((m) => m.origin?.ref === ref);
+  }
+  return (state) => state.movements.find((m) => m.id === key);
+}
+
+/** Lo que devuelve corregir o deshacer, con los nodos para nombrar la hoja. */
+export interface AgentWriteOutcome {
+  result: MovementWriteResult;
+  nodes: LedgerNode[];
+}
+
+/**
+ * Corrige un gasto o un ingreso registrado por un agente: monto, fecha, nota u hoja (FR-3411).
+ * Usa la misma mutación que la edición manual. Un movimiento registrado a mano se contesta como
+ * inexistente; una operación de bolsillo no se corrige (se deshace y se registra de nuevo).
+ *
+ * @param ownerId la cuenta del token
+ * @param key id del movimiento, o `ref:` + su referencia
+ * @param patch los campos a cambiar, ya validados por `agentPatchSchema`
+ * @returns el movimiento corregido y la revisión nueva, o el motivo del rechazo
+ * @throws si la base falla; la transacción revierte entera
+ * @aitri-trace FR-ID: FR-3411, US-ID: US-3411, AC-ID: AC-3411a, TC-ID: TC-AGT-110h, TC-AGT-111e, TC-AGT-115f, TC-AGT-117e
+ */
+export async function agentUpdate(ownerId: string, key: string, patch: AgentPatchInput): Promise<AgentWriteOutcome> {
+  let nodes: LedgerNode[] = [];
+  const result = await writeMovementWith(
+    ownerId,
+    locateByKey(key),
+    (prev, cal, scope, actual) => {
+      nodes = prev.nodes;
+      const cambio: MovementPatch = {
+        ...(patch.amount !== undefined ? { amount: patch.amount } : {}),
+        ...(patch.date !== undefined ? { date: patch.date } : {}),
+        ...(patch.note !== undefined ? { note: patch.note } : {}),
+      };
+      if (patch.target !== undefined) {
+        const nodo = findNode(prev.nodes, patch.target);
+        if (!nodo) return { rejected: "invalid_target" };
+        Object.assign(cambio, targetToCatSub(nodo));
+      }
+      return editMovement(prev, actual.id, cambio, cal, scope);
+    },
+    { soloDeAgente: true }
+  );
+  return { result, nodes };
+}
+
+/**
+ * Deshace un movimiento registrado por un agente (FR-3412): un gasto o ingreso con la mutación del
+ * borrado manual; una operación de bolsillo con `undoReserveOp`. Lo registrado a mano no se toca.
+ *
+ * @param ownerId la cuenta del token
+ * @param key id del movimiento, o `ref:` + su referencia
+ * @returns la revisión nueva, o el motivo del rechazo
+ * @throws si la base falla; la transacción revierte entera
+ * @aitri-trace FR-ID: FR-3412, US-ID: US-3412, AC-ID: AC-3412a, TC-ID: TC-AGT-120h, TC-AGT-121h, TC-AGT-125e, TC-AGT-126e
+ */
+export async function agentUndo(ownerId: string, key: string): Promise<AgentWriteOutcome> {
+  let nodes: LedgerNode[] = [];
+  const result = await writeMovementWith(
+    ownerId,
+    locateByKey(key),
+    (prev, _cal, scope, actual) => {
+      nodes = prev.nodes;
+      return actual.type === "transfer" ? undoReserveOp(prev, actual.id, scope) : deleteMovement(prev, actual.id);
+    },
+    { soloDeAgente: true, bolsillos: true }
+  );
+  return { result, nodes };
 }

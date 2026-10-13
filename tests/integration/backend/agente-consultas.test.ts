@@ -17,7 +17,7 @@ import { loadLedger } from "@/server/data/ledgerRepo";
 import { periodRange } from "@/domain/periods";
 import type { LedgerNode, LedgerState } from "@/domain";
 import { GET as treeGET } from "@/app/api/agent/v1/tree/route";
-import { GET as movsGET } from "@/app/api/agent/v1/movements/route";
+import { GET as movsGET, POST as movsPOST } from "@/app/api/agent/v1/movements/route";
 import { GET as periodGET } from "@/app/api/agent/v1/period/route";
 import { GET as summaryGET } from "@/app/api/agent/v1/summary/route";
 
@@ -100,6 +100,28 @@ describe("NFR-3415 — el trabajo no crece con el tamaño del libro", () => {
       expect(lecturas.length, tabla).toBe(1);
     }
     expect((await loadLedger(grande.userId))!.state.nodes).toHaveLength(60);
+  });
+
+  it("TC-AGT-267h: registrar un movimiento cuesta lo mismo con un libro chico que con uno grande", async () => {
+    // @aitri-tc TC-AGT-267h
+    const chica = await cuentaCon("chica@example.com", (id) => libro(id, { actuals: { "c-salario": { [OCT]: 3_000_000 } } }));
+    const grande = await cuentaCon("grande@example.com", libroGrande);
+    const gasto = (ref: string) => ({ type: "expense", target: "s-mercado", amount: 50_000, date: "2026-10-10", ref });
+    // Un registro previo en cada una: crea la celda de Mercado y estrena el «último uso» del token,
+    // para que la medición compare dos registros en el mismo estado.
+    for (const c of [chica, grande]) expect((await movsPOST(agentReq("/movements", { token: c.token, method: "POST", body: gasto("previo") }))).status).toBe(201);
+
+    const estados: number[] = [];
+    const deChica = await durante(async () => { estados.push((await movsPOST(agentReq("/movements", { token: chica.token, method: "POST", body: gasto("L1") }))).status); });
+    const deGrande = await durante(async () => { estados.push((await movsPOST(agentReq("/movements", { token: grande.token, method: "POST", body: gasto("L1") }))).status); });
+    expect(estados).toEqual([201, 201]);
+
+    // 60 nodos y celdas en 24 periodos cuestan las MISMAS sentencias que 12 nodos y una celda.
+    expect(deGrande.length).toBe(deChica.length);
+    // Una sola fila de movimiento insertada y una sola celda escrita, en una transacción.
+    expect(deGrande.filter((s) => /^insert into "movement"/i.test(s))).toHaveLength(1);
+    expect(deGrande.filter((s) => /^insert into "amount_cell"/i.test(s))).toHaveLength(1);
+    expect(deGrande.filter((s) => /^begin/i.test(s))).toHaveLength(1);
   });
 
   it("TC-AGT-268f: las lecturas no escriben en el libro", async () => {

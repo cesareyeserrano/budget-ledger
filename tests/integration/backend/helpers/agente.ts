@@ -204,3 +204,39 @@ export async function marcarComoAgente(
 export function hoy(fecha: string): Record<string, string> {
   return { "x-ledger-today": fecha };
 }
+
+/** El segundo argumento que Next pasa a una ruta dinámica. */
+export function conClave(key: string): { params: Promise<{ key: string }> } {
+  return { params: Promise.resolve({ key }) };
+}
+
+/** Valor de una celda (0 si no existe). */
+export async function celda(ownerId: string, nodeId: string, period: string, kind: "actual" | "budget" = "actual"): Promise<number> {
+  const filas = (await testDb().execute(
+    sql`SELECT amount FROM "amount_cell" WHERE owner_id = ${ownerId} AND node_id = ${nodeId} AND period = ${period} AND kind = ${kind}`
+  )) as unknown as { amount: string | number }[];
+  return filas.length === 0 ? 0 : Number(filas[0].amount);
+}
+
+/** Las filas de movimiento de una cuenta, tal como están en la base. */
+export async function filasDeMovimiento(ownerId: string): Promise<Record<string, unknown>[]> {
+  return (await testDb().execute(
+    sql`SELECT * FROM "movement" WHERE owner_id = ${ownerId} ORDER BY created_at`
+  )) as unknown as Record<string, unknown>[];
+}
+
+/** La revisión guardada del libro de una cuenta. */
+export async function revisionDe(ownerId: string): Promise<number> {
+  const [fila] = (await testDb().execute(
+    sql`SELECT revision FROM "ledger" WHERE owner_id = ${ownerId}`
+  )) as unknown as { revision: number }[];
+  return Number(fila.revision);
+}
+
+/** Todas las celdas de una cuenta como «nodo|periodo|plano|monto», ordenadas: para comparar dos libros. */
+export async function celdas(ownerId: string): Promise<string[]> {
+  const filas = (await testDb().execute(
+    sql`SELECT node_id, period, kind, amount FROM "amount_cell" WHERE owner_id = ${ownerId} AND amount <> 0 ORDER BY node_id, period, kind`
+  )) as unknown as { node_id: string; period: string; kind: string; amount: string | number }[];
+  return filas.map((f) => `${f.node_id}|${f.period}|${f.kind}|${Number(f.amount)}`);
+}

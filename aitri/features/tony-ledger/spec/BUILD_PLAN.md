@@ -71,12 +71,28 @@ re-aprobar la fase 2 (re-aprobarla invalida en cascada las fases 3 y 4). (2) Lec
 dependen del enrutador o de las cabeceras reales van contra el servidor levantado (tests/e2e-backend),
 no solo en proceso — se aplica en EP-03 a TC-AGT-034f y TC-AGT-247h.
 
-## EP-03 — Escrituras   [status: pending]
+## EP-03 — Escrituras   [status: done]
   Delivers:    US-3408, US-3409, US-3410, US-3411, US-3412, US-3418
   FRs:         FR-3408, FR-3409, FR-3410, FR-3411, FR-3412, FR-3418 (+ NFR-3404, NFR-3405, NFR-3408, NFR-3409, NFR-3411, NFR-3415)
   Makes pass:  TC-AGT-080h, TC-AGT-081h, TC-AGT-082e, TC-AGT-083f, TC-AGT-084f, TC-AGT-085f, TC-AGT-086e, TC-AGT-087e, TC-AGT-088f, TC-AGT-090h, TC-AGT-091e, TC-AGT-092f, TC-AGT-093e, TC-AGT-094f, TC-AGT-095h, TC-AGT-096e, TC-AGT-097e, TC-AGT-100h, TC-AGT-101h, TC-AGT-102e, TC-AGT-103f, TC-AGT-104f, TC-AGT-105f, TC-AGT-106e, TC-AGT-107e, TC-AGT-108e, TC-AGT-110h, TC-AGT-111e, TC-AGT-112f, TC-AGT-113f, TC-AGT-114f, TC-AGT-115f, TC-AGT-116f, TC-AGT-117e, TC-AGT-120h, TC-AGT-121h, TC-AGT-122f, TC-AGT-123f, TC-AGT-124f, TC-AGT-125e, TC-AGT-126e, TC-AGT-127f, TC-AGT-128h, TC-AGT-129e, TC-AGT-181h, TC-AGT-182f, TC-AGT-183f, TC-AGT-184e, TC-AGT-215h, TC-AGT-216f, TC-AGT-217e, TC-AGT-218f, TC-AGT-220h, TC-AGT-221f, TC-AGT-222e, TC-AGT-235h, TC-AGT-236f, TC-AGT-237e, TC-AGT-240h, TC-AGT-241f, TC-AGT-242e, TC-AGT-250f, TC-AGT-251f, TC-AGT-254f, TC-AGT-267h, TC-AGT-021h, TC-AGT-032f, TC-AGT-034f, TC-AGT-036f, TC-AGT-050f, TC-AGT-062f, TC-AGT-064e, TC-AGT-231e, TC-AGT-245f, TC-AGT-246f, TC-AGT-247h, TC-AGT-252h, TC-AGT-256f
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    El núcleo: registrar, no duplicar, bolsillos, corregir y deshacer con las mismas reglas que a mano. Lleva el refactor de insertMovement/writeMovement, por eso va con la suite de paridad.
+  Evidencia (2026-10-13): 78/78 en verde — tests/integration/backend/agente-escrituras.test.ts 38/38,
+               agente-paridad.test.ts 30/30, agente-consultas.test.ts (TC-AGT-267h), tests/unit/
+               agente-escrituras.test.ts 7/7, y tests/e2e/tony-ledger.spec.ts 2/2 contra el build de
+               producción (TC-AGT-034f y 247h). Suite completa (`npx vitest run`, Node 22): 197
+               archivos, 1980 pruebas, 0 fallos, exit 0. typecheck y lint limpios.
+  Notas: (1) `insertMovement` y `writeMovement` conservan firma y comportamiento; su cuerpo vive
+               ahora en `insertMovementWith` / `writeMovementWith`, que comparten con el agente
+               (NFR-3404). TC-AGT-240h/241f/242e fijan que la API del navegador responde igual.
+               (2) Deshacer un aporte: `undoAporteOp` (reserve.ts) = `applyReserveCellEdit` + quitar
+               la fila; `removeReserveOp` no cubre aportes a propósito. (3) Límite heredado de
+               `editMovement`: un movimiento solo se puede llevar a un periodo que ya tenga datos en
+               el libro; fuera de ese rango responde `invalid_date` (TC-AGT-111e lo documenta). Es
+               la misma regla que aplica la edición manual. (4) 034f y 247h se prueban contra el
+               servidor real (tests/e2e), no en proceso: es donde el enrutador y las cabeceras de
+               Next existen. Los dos arneses e2e arrancan con LEDGER_AGENT_API=on. (5) El «reinicio»
+               de TC-AGT-095h cierra el cliente de base de la app y recarga todos sus módulos.
 
 ## EP-04 — Marca y etiqueta   [status: pending]
   Delivers:    US-3413, US-3414
