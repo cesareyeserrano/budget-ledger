@@ -114,10 +114,26 @@ no solo en proceso — se aplica en EP-03 a TC-AGT-034f y TC-AGT-247h.
                lápiz (anterior a esta feature): 141e compara la fila del agente con una manual en
                vez de exigir scrollWidth ≤ clientWidth.
 
-## EP-05 — Contrato y despliegue   [status: pending]
+## EP-05 — Contrato y despliegue   [status: done]
   Delivers:    US-3419
   FRs:         FR-3419 (+ NFR-3413)
   Makes pass:  TC-AGT-190h, TC-AGT-191f, TC-AGT-192e, TC-AGT-260h, TC-AGT-263e, TC-AGT-264f
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Se documenta lo que ya está construido y probado: contrato, comando de tokens, red interna, interruptor y la comprobación en verificar-prod.
+  Evidencia (2026-10-13): 6/6 en verde — tests/unit/agente-contrato.test.ts. Suite completa
+               (`npx vitest run`): 200 archivos, 1998 pruebas, 0 fallos, exit 0. Cobertura
+               (`./coverage.sh`, exit 0): global 96,86 % de líneas; src/server/agent 98,1 %;
+               src/server/data/agentRepo.ts 98,98 %. typecheck, lint, design-tokens, security-config
+               y secret-scan limpios.
+  Notas: (1) TC-AGT-263e comprueba además que los 172 casos del plan tienen su prueba escrita,
+               cada uno en un solo archivo. (2) TC-AGT-190h cazó que la sección de DELETE no traía
+               ejemplo; se añadió. (3) `scripts/security-config.sh` exige ahora que toda ruta de
+               /api/agent pase por `withAgent` y que ninguna ruta HTTP toque la tabla de tokens.
+               (4) `scripts/verificar-prod.sh` gana la comprobación 7: la puerta responde 404 por
+               la URL pública. Es donde se confirma, contra el `tailscale serve` real, lo que ADR-06
+               supone de sus cabeceras.
 
+## Cierre del plan
+
+Las cinco épicas están hechas: 172/172 casos con prueba y en verde (163 en vitest y 9 en Playwright
+contra el build de producción).

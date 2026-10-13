@@ -2,9 +2,8 @@
  * Module: server/agent/responses
  * Purpose: La traducción ÚNICA de los rechazos del repositorio del agente a su respuesta HTTP. Si
  *   cada ruta tradujera por su cuenta, dos operaciones acabarían contestando distinto a la misma
- *   situación. También exporta la lista completa de códigos, que es lo que documenta
- *   docs/agent-api.md (FR-3419).
- * Dependencies: ../http, ../data/agentRepo
+ *   situación. La lista completa de códigos vive en ./codes (la documenta docs/agent-api.md).
+ * Dependencies: ../http, ../data/agentRepo, ./codes
  */
 import "server-only";
 import { HTTP, apiError, json } from "../http";
@@ -13,13 +12,7 @@ import { toAgentMovement } from "../data/agentRepo";
 import type { InsertMovementResult, MovementWriteResult } from "../data/ledgerRepo";
 import type { LedgerNode } from "@/domain";
 
-/** Todos los códigos de rechazo que la superficie del agente puede emitir. */
-export const AGENT_ERROR_CODES = [
-  "unauthorized", "not_found", "rate_limited", "payload_too_large", "invalid_payload", "invalid_target",
-  "invalid_period", "invalid_date", "closed_period_violation", "domain_rule_violation", "reference_conflict",
-  "unsupported_type", "negative_cell", "cell_movement_mismatch", "cell_already_changed", "internal_error",
-] as const;
-export type AgentErrorCode = (typeof AGENT_ERROR_CODES)[number];
+export { AGENT_ERROR_CODES, type AgentErrorCode } from "./codes";
 
 /**
  * Respuesta de una lectura que no se pudo atender.

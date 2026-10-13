@@ -144,7 +144,7 @@ It checks, and fails loudly if anything is off: (1) `/health` answers; (2) the r
 deployed commit, and that commit is the one on the remote branch; (3) the number of applied
 migrations equals the number of journal entries; (4) zero cells whose value differs from the sum of
 their movements; (5) zero movements whose period does not match their date; (6) given a backup, that
-**no** amount in `amount_cell` changed. For check 6 it writes two temporary copies of the amounts to
+**no** amount in `amount_cell` changed. (7) the agent door answers `404` through the public URL. For check 6 it writes two temporary copies of the amounts to
 a private directory (`umask 077`) and deletes them on exit.
 
 ### Migrations and their ordering constraints
@@ -270,6 +270,40 @@ Session cookies are `HttpOnly; Secure; SameSite`. Login is rate-limited (5 per 6
 sends HSTS, `X-Content-Type-Options: nosniff` and a CSP with `frame-ancestors 'none'`. CORS is
 restricted to `LEDGER_ALLOWED_ORIGINS` (never `*`). Every `/api/v1` route except the password
 recovery request requires a session; the `security-config` gate enforces it.
+
+## Agent door (optional)
+`/api/agent/v1` lets an agent — a program, with no browser — read the ledger and record movements
+with its own token. It is **off by default**; a deployment without an agent needs nothing from this
+section. The contract is in `docs/agent-api.md`.
+
+- **Switch.** `LEDGER_AGENT_API=on` enables it; any other value keeps it off (`404` on every route).
+- **Where it is served from.** Only requests that arrive directly: loopback always, plus the blocks
+  in `LEDGER_AGENT_SOURCES` (IPv4 or IPv4 CIDR, comma-separated). The Next.js server sets
+  `X-Forwarded-For` to the connecting address when the client did not send it, and a proxy sets it
+  to the real client's address — so anything that came through `tailscale serve` or Nginx is not
+  internal and gets `404`, with or without a valid token. The token is required in every case.
+  **Do not** add the tailnet range or `0.0.0.0/0` to `LEDGER_AGENT_SOURCES`.
+- **Network.** `docker-compose.agent.yml` puts the app on a Docker network shared only with the
+  agent's container (alias `t-ledger`); the database is not on it. Create the network once with a
+  fixed subnet and declare that same subnet in `LEDGER_AGENT_SOURCES`:
+
+  ```bash
+  docker network create --subnet 172.30.34.0/24 ledger-agent
+  docker compose -f docker-compose.yml -f docker-compose.agent.yml up -d
+  ```
+
+- **Tokens.** Created, listed and revoked only from a terminal — no HTTP route does it:
+
+  ```bash
+  docker compose exec app node scripts/agent-token.mjs create <account-email> "<name>"
+  docker compose exec app node scripts/agent-token.mjs list   <account-email>
+  docker compose exec app node scripts/agent-token.mjs revoke <token-id>
+  ```
+
+  The token is printed once and only its hash is stored. Revoking takes effect on the next request.
+- **Emergency stop.** Revoke the token, or set `LEDGER_AGENT_API=` and restart the app.
+- **Verification.** `scripts/verificar-prod.sh` checks that the door is **not** reachable through the
+  public URL (check 7).
 
 ## Branches
 Three fixed branches, and no other long-lived ones:

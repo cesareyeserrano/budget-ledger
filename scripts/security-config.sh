@@ -140,6 +140,24 @@ while IFS= read -r r; do
   if grep -qE 'auth:[[:space:]]*"required"' "$r" || grep -q 'getSessionUser' "$r"; then continue; fi
   check "RQ-SEC-104: $r no exige sesión (usa withApi con auth:\"required\", o añádela a PUBLICAS_OK con su FR)" 1
 done < <(find src/app/api/v1 -name route.ts | sort)
+
+# ── Puerta para agentes: toda ruta de /api/agent pasa por withAgent (feature tony-ledger, NFR-3410) ──
+# La superficie del agente niega por defecto: token, interruptor, red interna y tope viven en
+# `withAgent`, así que una ruta que exporte un handler sin él quedaría abierta a cualquiera. Y no
+# puede apoyarse en `withApi`: mezclaría las dos formas de entrar. Tampoco existe ninguna ruta que
+# gestione tokens: eso es solo de scripts/agent-token.mjs.
+while IFS= read -r r; do
+  [ -z "$r" ] && continue
+  if grep -q 'withAgent(' "$r" && ! grep -q 'withApi' "$r" \
+     && [ "$(grep -cE '^export const (GET|POST|PUT|PATCH|DELETE) ' "$r")" -gt 0 ] \
+     && ! grep -qE '^export (async )?function (GET|POST|PUT|PATCH|DELETE)' "$r"; then
+    continue
+  fi
+  check "NFR-3410: $r no pasa por withAgent (toda ruta de /api/agent exige token)" 1
+done < <(find src/app/api/agent -name route.ts 2>/dev/null | sort)
+if grep -rlE 'agentToken|"agent_token"' src/app 2>/dev/null | grep -q .; then
+  check "NFR-3410: una ruta HTTP toca la tabla de tokens (se gestionan solo con scripts/agent-token.mjs)" 1
+fi
 for r in $PUBLICAS_OK; do
   [ -f "$r" ] || check "RQ-SEC-104: la ruta pública $r ya no existe — revisa la lista PUBLICAS_OK" 1
 done

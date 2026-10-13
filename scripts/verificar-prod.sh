@@ -15,6 +15,7 @@
 #   4. Cero celdas descuadradas (FR-2511): celda = suma de sus movimientos.
 #   5. Cero movimientos cuyo periodo no case con su fecha.
 #   6. Si se le pasa un respaldo, que NINGUNA cifra de `amount_cell` haya cambiado respecto a él.
+#   7. La puerta para agentes (/api/agent/v1) NO se alcanza por la URL pública.
 #
 # USO (desde el Mac, o dentro de Ultron):
 #   ssh ultron 'cd ~/apps/budget-ledger && scripts/verificar-prod.sh'
@@ -116,6 +117,28 @@ PY
   else
     fallo "las cifras cambiaron respecto al respaldo ($ANTES celdas antes, $AHORA ahora):"
     diff "$TMP/antes.txt" "$TMP/ahora.txt" | head -10
+  fi
+fi
+
+echo
+
+echo "── 7. La puerta para agentes no se alcanza por la URL pública"
+# Feature tony-ledger (ADR-06). La superficie /api/agent/v1 solo atiende conexiones directas de la
+# red interna. Por el frente público —`tailscale serve`, Nginx— la petición trae la dirección del
+# cliente real y tiene que recibir 404, esté la puerta encendida o apagada. Un 401 aquí significaría
+# que la puerta SÍ se alcanza desde fuera y solo la protege el token.
+if [ -z "${BETTER_AUTH_URL:-}" ]; then
+  echo "  ⏭  sin BETTER_AUTH_URL en el entorno: no se puede probar la URL pública"
+elif ! command -v curl >/dev/null 2>&1; then
+  echo "  ⏭  curl no está instalado: no se puede probar la URL pública"
+else
+  PUERTA=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "${BETTER_AUTH_URL%/}/api/agent/v1/tree" 2>/dev/null || echo "000")
+  if [ "$PUERTA" = "404" ]; then
+    ok "/api/agent/v1 responde 404 por la URL pública"
+  elif [ "$PUERTA" = "000" ]; then
+    echo "  ⏭  la URL pública no respondió desde aquí (¿sin acceso a la tailnet?): compruébalo desde otro equipo"
+  else
+    fallo "/api/agent/v1 respondió $PUERTA por la URL pública — la puerta del agente se alcanza desde fuera (revisa LEDGER_AGENT_SOURCES)"
   fi
 fi
 
