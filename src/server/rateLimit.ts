@@ -11,8 +11,15 @@
 //               así que un contador compartido en proceso es suficiente y no añade infraestructura.
 //               Si algún día hay varias réplicas, esto necesita un almacén compartido.
 
-/** Marcas de tiempo de los intentos vivos de cada clave. */
-const buckets = new Map<string, number[]>();
+/**
+ * Marcas de tiempo de los intentos vivos de cada clave.
+ *
+ * En `globalThis`, como `syncHub` y el cliente de base: si el empaquetado instanciara este módulo
+ * una vez por ruta, un `Map` de módulo daría un cubo POR RUTA y el tope por token de la puerta para
+ * agentes (30 escrituras) se multiplicaría por el número de rutas sin que nada lo delatara.
+ */
+const globalForLimiter = globalThis as unknown as { __ledgerRateBuckets?: Map<string, number[]> };
+const buckets: Map<string, number[]> = (globalForLimiter.__ledgerRateBuckets ??= new Map());
 
 /**
  * ¿Están apagados los límites? Solo en los arneses de prueba: todo el tráfico de los tests viene de

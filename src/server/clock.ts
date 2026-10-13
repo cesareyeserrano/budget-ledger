@@ -47,7 +47,7 @@ export function serverToday(req?: Request, now: Date = new Date()): string {
 }
 
 /** Gancho SOLO de pruebas: lanza tras la primera escritura de la reubicación para probar el ROLLBACK. */
-export function testFailAfter(step: "first_insert"): void {
+export function testFailAfter(step: "first_insert" | "movement_insert"): void {
   if (overridesEnabled() && process.env.LEDGER_TEST_FAIL_AFTER === step) {
     throw new Error(`LEDGER_TEST_FAIL_AFTER=${step}: fallo forzado de pruebas`);
   }

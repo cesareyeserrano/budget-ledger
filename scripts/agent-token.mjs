@@ -70,6 +70,10 @@ async function cuentaDe(sql, correo) {
     fallar("no existe ninguna cuenta con ese correo");
     return null;
   }
+  if (filas.length > 1) {
+    fallar("hay más de una cuenta con ese correo (difieren en mayúsculas): no se elige una al azar");
+    return null;
+  }
   return filas[0].id;
 }
 

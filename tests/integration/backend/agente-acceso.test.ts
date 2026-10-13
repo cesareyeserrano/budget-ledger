@@ -21,14 +21,17 @@ import { sql } from "drizzle-orm";
 import { authPost } from "./helpers/authClient";
 import { closeTestDb, testDb, truncateAll } from "./helpers/db";
 import {
-  OCT, ORIGIN, PASSWORD, agentReq, apiReq, capturarLogs, cli, crearToken, libro, limpiarTopes, newUser, sembrar,
+  OCT, ORIGIN, agentReq, apiReq, capturarLogs, cli, crearToken, libro, limpiarTopes, newUser, sembrar,
   superficie, tokenInexistente, volcado,
 } from "./helpers/agente";
 import { hashToken, resolveToken, TOKEN_PATTERN } from "@/server/agent/tokens";
 import { GET as treeGET } from "@/app/api/agent/v1/tree/route";
 import { GET as ledgerGET, PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
 import { GET as movsGET, POST as movsPOST } from "@/app/api/v1/movements/route";
-import { POST as closurePOST } from "@/app/api/v1/closure/route";
+import { DELETE as closureDELETE, POST as closurePOST } from "@/app/api/v1/closure/route";
+import { PUT as startPUT } from "@/app/api/v1/ledger/start/route";
+import { DELETE as apiMovDELETE, PATCH as apiMovPATCH } from "@/app/api/v1/movements/[id]/route";
+import { isInternalAddress, isValidSource } from "@/server/agent/origin";
 import { GET as closureEventsGET } from "@/app/api/v1/closure/events/route";
 import { PUT as cyclesPUT } from "@/app/api/v1/ledger/cycles/route";
 import { GET as horizonGET, PUT as horizonPUT } from "@/app/api/v1/preferences/horizon/route";
@@ -253,7 +256,9 @@ describe("FR-3403 — autenticación por token y aislamiento", () => {
     const ids: string[] = (await res.json()).nodes.map((n: { id: string }) => n.id);
     for (const id of ["s-mercado", "s-restaurantes", "c-salario", "s-viaje", "s-carro"]) expect(ids).toContain(id);
     expect(ids.some((id) => id.startsWith("b-"))).toBe(false);
-    expect(b.userId).not.toBe(a.userId);
+    // Y con el token de B, lo mismo al revés: solo lo suyo.
+    const deB: string[] = (await (await treeGET(agentReq("/tree", { token: b.token }))).json()).nodes.map((n: { id: string }) => n.id);
+    expect(deB.every((id) => id.startsWith("b-"))).toBe(true);
   });
 
   it("TC-AGT-031f: sin token, mal formado, inexistente o revocado: el mismo 401", async () => {
@@ -312,9 +317,16 @@ describe("FR-3404 — la API del navegador no acepta el token", () => {
       await ledgerPUT(con("/api/v1/ledger", "PUT", { baseRevision: 1, state: { ...libro(c.userId), nodes: [] } })),
       await movsPOST(con("/api/v1/movements", "POST", { type: "expense", catId: "c-alimentacion", subId: "s-mercado", amount: 50_000, period: OCT })),
       await closurePOST(con("/api/v1/closure", "POST", { baseRevision: 1 })),
-      await cyclesPUT(con("/api/v1/ledger/cycles", "PUT", { mode: "month" })),
+      await closureDELETE(con("/api/v1/closure", "DELETE", { baseRevision: 1 })),
+      await cyclesPUT(con("/api/v1/ledger/cycles", "PUT", { baseRevision: 1, target: { mode: "cycle", anchorDay: 21, eomPolicy: "last_day" } })),
+      await startPUT(con("/api/v1/ledger/start", "PUT", { baseRevision: 1, startMonth: OCT, openingBalance: 5_000_000 })),
       await horizonPUT(con("/api/v1/preferences/horizon", "PUT", { horizon: 1 })),
+      await apiMovPATCH(con("/api/v1/movements/m-cualquiera", "PATCH", { amount: 1 }), { params: Promise.resolve({ id: "m-cualquiera" }) }),
+      await apiMovDELETE(con("/api/v1/movements/m-cualquiera", "DELETE", undefined), { params: Promise.resolve({ id: "m-cualquiera" }) }),
     ];
+    expect(respuestas).toHaveLength(9);
+    const [horizonte] = (await testDb().execute(sql`SELECT horizon FROM "user" WHERE id = ${c.userId}`)) as unknown as { horizon: number }[];
+    expect(horizonte.horizon).toBe(2); // la preferencia tampoco cambió
     for (const r of respuestas) expect(r.status).toBe(401);
     expect(await volcado(c.userId)).toBe(antes);
   });
@@ -483,7 +495,6 @@ describe("NFR-3407 — los límites del login no se tocan", () => {
     const res = await treeGET(agentReq("/tree", { token: c.token }));
     expect(res.status).toBe(200);
     expect((await res.json()).nodes).toHaveLength(12);
-    expect(PASSWORD.length).toBeGreaterThan(8);
   });
 });
 
@@ -512,40 +523,64 @@ describe("NFR-3411 — la superficie no se alcanza por un proxy", () => {
   it("TC-AGT-253e: lo que llega por un proxy no se atiende ni con token válido", async () => {
     // @aitri-tc TC-AGT-253e
     const c = await cuentaConToken();
-    // Cada caso es lo que un proxy deja en la petición; la dirección ya no es la de la máquina.
+    const ver = async (h: Record<string, string>) => (await treeGET(agentReq("/tree", { token: c.token, headers: h }))).status;
+
+    // 1) Con el loopback declarado (como en dev): lo que deja un proxy en la petición no entra.
     const porProxy: Record<string, string>[] = [
       { "x-forwarded-for": "100.64.0.5" },                    // tailscale serve: IP del cliente en la tailnet
       { "x-forwarded-for": "203.0.113.9" },                   // cliente de internet
       { "x-forwarded-for": "203.0.113.9, 127.0.0.1" },        // proxy que ANEXA: dos saltos
-      { "x-forwarded-for": "172.30.0.5" },                    // red privada NO declarada como interna
+      { "x-forwarded-for": "127.0.0.1, 127.0.0.1" },          // dos saltos, aunque los dos «parezcan» locales
+      { "x-forwarded-for": "172.30.34.10" },                  // red privada NO declarada
+      { "x-forwarded-for": "127.0.0.1:3000" },                // con puerto: no es una dirección
+      { "x-forwarded-for": "" },                              // vacía
       { "x-forwarded-host": "ultron.example" },               // el proxy reescribió el host
-      { forwarded: "for=100.64.0.5" },
+      { forwarded: "for=127.0.0.1" },
       { "tailscale-user-login": "alguien@example.com" },
       { "Tailscale-User-Name": "Alguien" },
     ];
-    for (const h of porProxy) {
-      const res = await treeGET(agentReq("/tree", { token: c.token, headers: h }));
-      expect(res.status, JSON.stringify(h)).toBe(404);
-    }
+    for (const h of porProxy) expect(await ver(h), JSON.stringify(h)).toBe(404);
     expect(await ultimoUso(c.tokenId)).toBeNull(); // el token ni se llegó a mirar
 
     // La conexión directa —como la entrega Next: dirección del socket y host iguales— sí.
     for (const h of [{ "x-forwarded-for": "127.0.0.1" }, { "x-forwarded-for": "::1" }, { "x-forwarded-for": "::ffff:127.0.0.1" }]) {
-      expect((await treeGET(agentReq("/tree", { token: c.token, headers: h }))).status, JSON.stringify(h)).toBe(200);
+      expect(await ver(h), JSON.stringify(h)).toBe(200);
     }
     expect(await ultimoUso(c.tokenId)).not.toBeNull();
 
-    // Y una red interna solo cuenta si el despliegue la declara.
-    process.env.LEDGER_AGENT_SOURCES = "172.30.0.0/24";
-    superficie("on");
     try {
-      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "172.30.0.5" } }))).status).toBe(200);
-      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "172.30.1.5" } }))).status).toBe(404);
-      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "100.64.0.5" } }))).status).toBe(404);
+      // 2) NINGÚN origen es interno por defecto: sin declarar nada, ni la propia máquina entra.
+      superficie("on", "");
+      for (const h of [{ "x-forwarded-for": "127.0.0.1" }, { "x-forwarded-for": "::1" }, { "x-forwarded-for": "172.30.34.10" }]) {
+        expect(await ver(h), `sin orígenes: ${JSON.stringify(h)}`).toBe(404);
+      }
+
+      // 3) Producción: solo la IP fija del agente. La puerta de enlace de su red (.1), por donde
+      //    entra el tráfico del puerto publicado en el host, y el loopback quedan fuera.
+      superficie("on", "172.30.34.10");
+      expect(await ver({ "x-forwarded-for": "172.30.34.10" })).toBe(200);
+      expect(await ver({ "x-forwarded-for": "::ffff:172.30.34.10" })).toBe(200);
+      for (const fuera of ["172.30.34.1", "172.30.34.11", "127.0.0.1", "::1", "100.64.0.5"]) {
+        expect(await ver({ "x-forwarded-for": fuera }), fuera).toBe(404);
+      }
+
+      // 4) Un bloque declarado cubre lo suyo y nada más.
+      superficie("on", "172.30.34.0/24");
+      expect(await ver({ "x-forwarded-for": "172.30.34.200" })).toBe(200);
+      expect(await ver({ "x-forwarded-for": "172.30.35.1" })).toBe(404);
     } finally {
-      delete process.env.LEDGER_AGENT_SOURCES;
       superficie("on");
     }
+
+    // 5) Lo que se puede declarar: una IPv4 o un bloque de /16 o más estrecho. Un bloque ancho no.
+    for (const valida of ["172.30.34.10", "172.30.34.0/24", "10.20.0.0/16", "127.0.0.1", "127.0.0.0/8", "192.168.1.7/32"]) {
+      expect(isValidSource(valida), valida).toBe(true);
+    }
+    for (const invalida of ["0.0.0.0/0", "10.0.0.0/8", "172.16.0.0/12", "100.64.0.0/10", "::1", "172.30.34", "172.30.34.0/33", "a.b.c.d", "", "172.30.34.0/24/1"]) {
+      expect(isValidSource(invalida), invalida).toBe(false);
+    }
+    expect(isInternalAddress("127.0.0.1", [])).toBe(false);
+    expect(isInternalAddress("10.0.0.5", ["10.0.0.0/16"])).toBe(true);
   });
 });
 
@@ -599,8 +634,6 @@ describe("NFR-3414 — el healthcheck no cambia", () => {
       headers: { authorization: `Bearer ${tokenInexistente()}`, "x-forwarded-for": "100.64.0.5" },
     }));
     expect(res.status).toBe(200);
-    expect(res.status).not.toBe(401);
-    expect(res.status).not.toBe(404);
     expect(await res.json()).toEqual({ status: "ok" });
   });
 });

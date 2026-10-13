@@ -10,6 +10,8 @@
  * Dependencias: el Postgres efímero del globalSetup, ./helpers/agente.
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { sql } from "drizzle-orm";
 import { authPost } from "./helpers/authClient";
 import { closeTestDb, testDb, truncateAll } from "./helpers/db";
@@ -247,6 +249,32 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
       expect((await res.json()).error.code).toBe("unauthorized");
     }
     expect(await filasDeMovimiento(c.userId)).toHaveLength(0);
+
+    // Y ningún método de ninguna ruta de la superficie abre sin token. Se RECORREN los archivos de
+    // ruta: una ruta nueva exportada sin la envoltura hace caer esto sin que nadie la añada a mano.
+    const raiz = path.join(process.cwd(), "src/app/api/agent");
+    const archivos = (readdirSync(raiz, { recursive: true }) as string[]).filter((f) => f.endsWith("route.ts")).sort();
+    expect(archivos).toHaveLength(5);
+    let handlers = 0;
+    for (const archivo of archivos) {
+      const modulo = (await import(/* @vite-ignore */ path.join(raiz, archivo))) as Record<string, unknown>;
+      const ruta = "/" + archivo.replace(/^v1\//, "").replace(/\/?route\.ts$/, "").replace("[key]", "m-x");
+      for (const [metodo, handler] of Object.entries(modulo)) {
+        if (typeof handler !== "function") continue;
+        handlers += 1;
+        limpiarTopes(); // 30 peticiones sin token seguidas agotarían el cubo de intentos inválidos
+        const llamar = handler as (req: Request, ctx: unknown) => Promise<Response>;
+        const pedir = () => llamar(agentReq(ruta, { method: metodo }), conClave("m-x"));
+        const sinToken = await pedir();
+        expect(sinToken.status, `${metodo} ${ruta}`).toBe(401);
+        expect((await sinToken.json()).error.code, `${metodo} ${ruta}`).toBe("unauthorized");
+        // Con la puerta apagada, lo mismo que cualquier otra cosa: 404.
+        superficie("off");
+        try { expect((await pedir()).status, `${metodo} ${ruta} apagada`).toBe(404); } finally { superficie("on"); }
+      }
+    }
+    // Cinco rutas × seis métodos HTTP (GET, POST, PUT, PATCH, DELETE, OPTIONS): todos por la envoltura.
+    expect(handlers).toBe(30);
   });
 
   it("TC-AGT-250f: cuerpo con campos de más, tipos erróneos o demasiado grande", async () => {
@@ -265,6 +293,22 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
     const pesado = await movsPOST(agentReq("/movements", { token: c.token, method: "POST", rawBody: grande }));
     expect(pesado.status).toBe(413);
     expect((await pesado.json()).error.code).toBe("payload_too_large");
+    // Justo en el tope (16 KiB exactos) NO es demasiado grande: se lee, y lo rechaza el esquema.
+    const justo = grande.replace("nn", "n");
+    expect(Buffer.byteLength(justo)).toBe(16 * 1024);
+    const enElTope = await movsPOST(agentReq("/movements", { token: c.token, method: "POST", rawBody: justo }));
+    expect(enElTope.status).toBe(422);
+    expect((await enElTope.json()).error.code).toBe("invalid_payload");
+    // Un cuerpo chico que DECLARA un tamaño enorme se rechaza sin leerlo.
+    const mentiroso = await movsPOST(agentReq("/movements", {
+      token: c.token, method: "POST", rawBody: JSON.stringify(gasto("L4")), headers: { "content-length": "999999" },
+    }));
+    expect(mentiroso.status).toBe(413);
+    // Y la corrección tiene el mismo tope.
+    const patchGrande = await movPATCH(
+      agentReq("/movements/m-x", { token: c.token, method: "PATCH", rawBody: JSON.stringify({ note: "n".repeat(17_000) }) }), conClave("m-x")
+    );
+    expect(patchGrande.status).toBe(413);
     expect(await filasDeMovimiento(c.userId)).toHaveLength(0);
   });
 
@@ -284,6 +328,25 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
     const inyectada = await movsGET(agentReq(`/movements?ref=${encodeURIComponent("' OR 1=1 --")}`, { token: c.token }));
     expect(inyectada.status).toBe(404);
     expect((await inyectada.json()).error.code).toBe("not_found");
+
+    // El carácter nulo y un sustituto Unicode suelto: Postgres no los guarda tal cual. Se rechazan
+    // en el borde con 422 — nunca un 500, que además volcaría la sentencia y sus parámetros al log.
+    const errores: string[] = [];
+    const original = console.error;
+    console.error = (...a: unknown[]) => { errores.push(a.map(String).join(" ")); };
+    try {
+      for (const [campo, valor] of [["note", "a\u0000b"], ["ref", "X\u0000"], ["ref", "\uD800"], ["target", "s-mercado\u0000"]] as const) {
+        const r = await registrar(c, { ...gasto("NUL-1", 1_000), [campo]: valor });
+        expect(r.status, `${campo}=${JSON.stringify(valor)}`).toBe(422);
+        expect((await r.json()).error.code).toBe("invalid_payload");
+      }
+      const patchNulo = await corregir(c, "ref:L1", { note: "x\u0000" });
+      expect(patchNulo.status).toBe(422);
+    } finally {
+      console.error = original;
+    }
+    expect(errores).toEqual([]);
+    expect(await filasDeMovimiento(c.userId)).toHaveLength(6);
   });
 
   it("TC-AGT-252h: toda respuesta de la superficie lleva Cache-Control: no-store", async () => {
@@ -304,16 +367,22 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
     // @aitri-tc TC-AGT-254f
     const c = await cuenta("admin@admin.com");
     const antes = await volcado(c.userId);
+    const errores: string[] = [];
     const original = console.error;
-    console.error = () => {};
-    process.env.LEDGER_TEST_FAIL_AFTER = "first_insert";
+    console.error = (...a: unknown[]) => { errores.push(a.map(String).join(" ")); };
+    process.env.LEDGER_TEST_FAIL_AFTER = "movement_insert";
     let res: Response;
     try {
-      res = await registrar(c, gasto("L300"));
+      res = await registrar(c, { ...gasto("L300", 7_654_321), note: "nota-secreta-zz" });
     } finally {
       delete process.env.LEDGER_TEST_FAIL_AFTER;
       console.error = original;
     }
+    // El fallo queda registrado en el servidor, pero solo con su nombre: ni la nota, ni el monto,
+    // ni la referencia, ni la sentencia SQL que el error de la base trae consigo.
+    expect(errores).toHaveLength(1);
+    expect(errores[0]).toContain("POST /api/agent/v1/movements error:");
+    for (const fuga of ["nota-secreta-zz", "7654321", "L300", "insert into", "INSERT", "params"]) expect(errores[0], fuga).not.toContain(fuga);
     expect(res.status).toBe(500);
     const cuerpo = await res.text();
     expect(JSON.parse(cuerpo)).toEqual({ error: { code: "internal_error", message: "Error interno" } });
@@ -321,6 +390,9 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
     // La transacción revirtió entera: ni el movimiento, ni la celda, ni la revisión.
     expect(await volcado(c.userId)).toBe(antes);
     expect((await registrar(c, gasto("L300"))).status).toBe(201); // y la referencia quedó libre
+    // El gancho de la reubicación de ciclos NO corta un registro: son pasos distintos.
+    process.env.LEDGER_TEST_FAIL_AFTER = "first_insert";
+    try { expect((await registrar(c, gasto("L301"))).status).toBe(201); } finally { delete process.env.LEDGER_TEST_FAIL_AFTER; }
   });
 
   it("TC-AGT-256f: el log no contiene el token, la nota ni el monto", async () => {
@@ -335,6 +407,18 @@ describe("NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie", () => 
     expect(linea).toBeDefined();
     expect(linea).toContain(`agent=${c.tokenId}`);
     for (const secreto of [c.token, "7654321", "nota-secreta-zz", "L-priv-9"]) expect(lineas.join("\n")).not.toContain(secreto);
+
+    // Corregir y deshacer POR REFERENCIA la llevan en la URL: en el log sale enmascarada.
+    const porRuta = await capturarLogs(async () => {
+      expect((await corregir(c, "ref:L-priv-9", { amount: 7_654_322 })).status).toBe(200);
+      expect((await deshacer(c, "ref:L-priv-9")).status).toBe(200);
+    });
+    const deLaPuerta = porRuta.filter((l) => l.includes("/api/agent/v1/movements"));
+    expect(deLaPuerta).toHaveLength(2);
+    for (const l of deLaPuerta) {
+      expect(l).toContain("/api/agent/v1/movements/ref:* 200");
+      expect(l).not.toContain("L-priv-9");
+    }
   });
 });
 
@@ -400,12 +484,16 @@ describe("FR-3418 — sincronización con la app abierta", () => {
     // @aitri-tc TC-AGT-184e
     const c = await cuenta("admin@admin.com");
     const antes = await revisionDe(c.userId);
-    const [r1, r2] = await Promise.all([registrar(c, gasto("L300", 50_000)), registrar(c, gasto("L301", 20_000))]);
-    expect([r1.status, r2.status]).toEqual([201, 201]);
-    const revisiones = [(await r1.json()).revision, (await r2.json()).revision].sort((a, b) => a - b);
-    expect(revisiones).toEqual([antes + 1, antes + 2]);
-    expect(await filasDeMovimiento(c.userId)).toHaveLength(2);
-    expect(await celda(c.userId, "s-mercado", OCT)).toBe(170_000);
+    // Diez a la vez sobre la MISMA celda: sin el bloqueo de la fila del libro, dos leerían la misma
+    // celda y una suma se perdería, o dos se llevarían la misma revisión.
+    const montos = [50_000, 20_000, 1_000, 2_000, 3_000, 4_000, 5_000, 6_000, 7_000, 8_000];
+    const respuestas = await Promise.all(montos.map((m, i) => registrar(c, gasto(`L3${i}`, m))));
+    expect(respuestas.map((r) => r.status)).toEqual(Array(10).fill(201));
+    const revisiones = (await Promise.all(respuestas.map(async (r) => (await r.json()).revision))).sort((a, b) => a - b);
+    expect(revisiones).toEqual(montos.map((_, i) => antes + 1 + i));
+    expect(await revisionDe(c.userId)).toBe(antes + 10);
+    expect(await filasDeMovimiento(c.userId)).toHaveLength(10);
+    expect(await celda(c.userId, "s-mercado", OCT)).toBe(100_000 + montos.reduce((a, b) => a + b, 0));
   });
 });
 
@@ -477,6 +565,15 @@ describe("NFR-3404 — las reglas valen igual para el agente", () => {
     expect(await celdas(agente.userId)).toEqual(esperado);
     expect(await celdas(app.userId)).toEqual(esperado);
     expect(await revisionDe(agente.userId)).toBe(await revisionDe(app.userId));
+    // Y las filas del diario son las mismas, salvo el id, la marca del agente y el orden de creación.
+    const normalizadas = async (id: string) => (await filasDeMovimiento(id)).map((f) =>
+      [f.type, f.cat_id, f.sub_id, f.target, Number(f.amount), f.period, f.date, f.from_id, f.to_id, f.kind].join("|")).sort();
+    expect(await normalizadas(agente.userId)).toEqual(await normalizadas(app.userId));
+    expect(await normalizadas(agente.userId)).toEqual([
+      `expense|c-alimentacion|s-mercado|s-mercado|50000|${OCT}|2026-10-10|||manual`,
+      `income|c-salario||c-salario|3000000|${OCT}|2026-10-05|||manual`,
+      `transfer|c-metas|s-viaje|s-viaje|200000|${OCT}|2026-10-10|@disponible|s-viaje|manual`,
+    ]);
   });
 
   it("TC-AGT-216f: paridad: lo que una puerta rechaza, la otra también", async () => {
@@ -539,6 +636,28 @@ describe("NFR-3404 — las reglas valen igual para el agente", () => {
     expect(filas.map((f) => Number(f.amount)).sort((a, b) => a - b)).toEqual([25_000, 50_000]);
     expect(suma).toBe(75_000);
     expect(await celda(c.userId, "s-mercado", OCT)).toBe(suma);
+
+    // También con bolsillos de por medio: reservar, sacar, mover y deshacer.
+    await creado(c, { type: "transfer", from: "@disponible", to: "s-viaje", amount: 200_000, date: "2026-10-10", ref: "B1" });
+    const retiro = await creado(c, { type: "transfer", from: "s-viaje", to: "@disponible", amount: 50_000, date: "2026-10-11", ref: "B2" });
+    await creado(c, { type: "transfer", from: "s-viaje", to: "s-carro", amount: 30_000, date: "2026-10-12", ref: "B3" });
+    expect((await deshacer(c, retiro.id)).status).toBe(200);
+    // En TODO el libro, cada celda de gasto o ingreso es la suma de sus movimientos — la misma
+    // consulta con la que scripts/verificar-prod.sh busca descuadres en producción.
+    const [{ descuadres }] = (await testDb().execute(sql`
+      SELECT count(*)::int AS descuadres FROM amount_cell c
+      JOIN node n ON n.owner_id = c.owner_id AND n.id = c.node_id
+      LEFT JOIN (SELECT owner_id, target, period, sum(amount) s FROM movement WHERE type <> 'transfer' GROUP BY 1,2,3) x
+        ON x.owner_id = c.owner_id AND x.target = c.node_id AND x.period = c.period
+      WHERE c.owner_id = ${c.userId} AND c.kind = 'actual' AND n.type <> 'transfer' AND c.amount <> coalesce(x.s, 0)`)) as unknown as { descuadres: number }[];
+    // El salario se sembró como celda sin movimiento: es el único descuadre, y ya estaba antes.
+    expect(descuadres).toBe(1);
+    // Y los bolsillos: el aporte en su celda, y el saldo derivado, los que tocan.
+    expect(await celda(c.userId, "s-viaje", OCT)).toBe(200_000);
+    const r = await (await summaryGET(agentReq(`/summary?period=${OCT}`, { token: c.token }))).json();
+    const bolsillo = (id: string) => r.pockets.find((p: { id: string }) => p.id === id).balance;
+    expect([bolsillo("s-viaje"), bolsillo("s-carro")]).toEqual([170_000, 30_000]);
+    expect(r.balance.reserved).toBe(200_000);
   });
 
   it("TC-AGT-218f: una escritura rechazada deja la base exactamente igual", async () => {

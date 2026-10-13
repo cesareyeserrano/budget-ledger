@@ -72,6 +72,15 @@ describe("FR-3408 — el cuerpo de un registro", () => {
     expect(valido({ amount: 1 })).toBe(true);
     expect(valido({ amount: MONTO_MAX })).toBe(true);
     expect(valido({ note: "n".repeat(280) })).toBe(true);
+    // Texto que no se puede guardar tal cual: el carácter nulo (Postgres lo rechaza y la escritura
+    // acabaría en un 500), otros caracteres de control y un sustituto Unicode suelto.
+    for (const sucio of ["a\u0000b", "a\u0007b", "\u001Bx", "a\u007Fb", "\uD800", "x\uDC00"]) {
+      expect(valido({ note: sucio }), `note ${JSON.stringify(sucio)}`).toBe(false);
+      expect(valido({ ref: sucio }), `ref ${JSON.stringify(sucio)}`).toBe(false);
+      expect(valido({ target: sucio }), `target ${JSON.stringify(sucio)}`).toBe(false);
+    }
+    // Lo legítimo sí: tildes, emoji (un par de sustitutos COMPLETO), salto de línea y tabulador.
+    expect(valido({ note: "Café ☕ 😀\ncon\tpropina", ref: "L-300/á" })).toBe(true);
     // Una operación de bolsillo lleva extremos, no destino: mezclar las dos formas tampoco pasa.
     expect(agentMovementSchema.safeParse({ type: "transfer", from: "@disponible", to: "s-viaje", amount: 1, date: "2026-10-10", ref: "L2" }).success).toBe(true);
     expect(agentMovementSchema.safeParse({ ...gasto, from: "@disponible" }).success).toBe(false);

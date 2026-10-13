@@ -8,7 +8,7 @@
  */
 import "server-only";
 import {
-  calendarOf, insertMovementWith, loadLedger, serverScope, writeMovementWith,
+  calendarOf, closureScope, insertMovementWith, loadLedger, writeMovementWith,
   type InsertMovementResult, type InsertPlan, type MovementWriteResult,
 } from "./ledgerRepo";
 import { deleteMovement, editMovement, type MovementPatch } from "@/domain/adjust";
@@ -192,6 +192,8 @@ export async function agentPeriodOf(ownerId: string, date: string | null): Promi
 
 /** El periodo de una fecha, o null si el calendario de la cuenta no la contiene. */
 function periodOfDate(state: LedgerState, date: string): PeriodKey | null {
+  // El año, antes de construir el calendario: las cotas de este se amplían hasta la fecha.
+  if (!PERIOD_KEY.safeParse(date.slice(0, 7)).success) return null;
   try {
     // La fecha amplía las cotas del calendario: un día posterior al último dato sigue teniendo periodo.
     const period = calendarOf(state, date.slice(0, 7) as PeriodKey).periodForDate(date);
@@ -205,7 +207,12 @@ function periodOfDate(state: LedgerState, date: string): PeriodKey | null {
 /** Resuelve el periodo pedido, o el vigente si no se pidió ninguno. */
 function resolvePeriod(state: LedgerState, raw: string | null, today: string): PeriodKey | "invalid_period" {
   if (raw === null) return periodOfDate(state, today) ?? "invalid_period";
-  return isPeriodKey(raw) ? raw : "invalid_period";
+  // El año acotado ANTES de construir nada: un «9999-12» obligaría a recorrer miles de periodos.
+  if (!isPeriodKey(raw) || !PERIOD_KEY.safeParse(raw).success) return "invalid_period";
+  // Y la clave tiene que existir en el calendario de la cuenta: en modo mes no hay claves de
+  // transición («2026-10t»).
+  const mes = monthOf(raw);
+  return calendarOf(state, mes).keys(mes, mes).includes(raw) ? raw : "invalid_period";
 }
 
 /**
@@ -268,7 +275,11 @@ export async function agentMovementByRef(ownerId: string, ref: string): Promise<
  */
 export function buildSummary(state: LedgerState, revision: number, period: PeriodKey): AgentSummary {
   const cal = calendarOf(state, period);
-  const scope = serverScope(state, period);
+  // El MISMO rango que la pantalla (`activeBounds`): desde el dato más antiguo, el mes de inicio
+  // declarado o la frontera del cierre —lo que esté antes—. Con `serverScope`, que arranca en el
+  // primer dato, un saldo inicial declarado en un mes sin cifras se perdía y el Disponible del
+  // agente salía menor que el de la app (revisión adversarial, 2026-10-13).
+  const scope = closureScope(state, period);
   const tabla = rollupTable(state, [period]);
   const ingresos = typeTotals(state, "income", [period]);
   const gastos = typeTotals(state, "expense", [period]);
@@ -447,7 +458,12 @@ export async function agentUpdate(ownerId: string, key: string, patch: AgentPatc
       }
       return editMovement(prev, actual.id, cambio, cal, scope);
     },
-    { soloDeAgente: true }
+    {
+      soloDeAgente: true,
+      // Corregir la fecha puede llevar el movimiento a un periodo que aún no tiene datos (el 1 de
+      // enero de un año sin plan): se añade al rango, igual que hace el registro.
+      destino: (prev) => (patch.date !== undefined ? periodOfDate(prev, patch.date) : null),
+    }
   );
   return { result, nodes };
 }

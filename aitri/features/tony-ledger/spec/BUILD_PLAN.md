@@ -137,3 +137,51 @@ no solo en proceso — se aplica en EP-03 a TC-AGT-034f y TC-AGT-247h.
 
 Las cinco épicas están hechas: 172/172 casos con prueba y en verde (163 en vitest y 9 en Playwright
 contra el build de producción).
+
+## Revisión adversarial (2026-10-13) — tres revisores independientes, solo lectura
+
+Lentes: seguridad de la puerta, corrección del dinero y calidad de las pruebas. Ningún hallazgo
+crítico: sin cruce de cuentas, sin pérdida de dinero y sin regresión en la API del navegador.
+Lo que se verificó contra el código y se corrigió:
+
+Código
+- **El resumen perdía el saldo inicial** cuando el mes de inicio declarado era anterior al primer dato
+  (usaba `serverScope`; la pantalla ancla en el inicio). Ahora usa `closureScope`. TC-AGT-156e lo compara
+  contra el rango activo del cliente.
+- **Un carácter nulo en `note`/`ref` daba 500** y el error de la base —con la sentencia y sus
+  parámetros— iba al log. Los esquemas rechazan caracteres de control y sustitutos sueltos (422), y
+  la envoltura registra solo el nombre del fallo. TC-AGT-085f, 251f, 254f.
+- **Ningún origen es interno por defecto** (antes el loopback lo era siempre) y no se admiten bloques
+  más anchos que /16. TC-AGT-253e. Deuda declarada: la regla no autentica a un cliente directo.
+- **Next contestaba OPTIONS (204 + Allow) y 405 sin pasar por la envoltura**, también con la puerta
+  apagada. Cada ruta exporta los demás métodos hacia `agentNotFound`. TC-AGT-072f, 246f, 247h.
+- **HEAD contaba como escritura.** Ahora es lectura. TC-AGT-065e.
+- **Periodos sin cota** (`9999-12` recorría ~96.000 periodos; `2026-10t` en modo mes daba ceros):
+  se valida el año y la pertenencia al calendario. TC-AGT-153f.
+- **Corregir la fecha hacia un periodo sin datos** se rechazaba: el destino se añade al rango.
+  TC-AGT-111e (deja de ser deuda).
+- **El límite de un piso al deshacer un aporte** salía negativo: ahora es lo que el bolsillo tiene.
+  TC-AGT-122f.
+- La referencia de origen ya no va al log por la ruta (`/movements/ref:*`). TC-AGT-256f.
+- El gancho de pruebas del registro tiene paso propio (`movement_insert`); los cubos del limitador
+  viven en `globalThis`; el comando de tokens no elige entre dos cuentas que difieren en mayúsculas.
+- `scripts/security-config.sh` mira CADA método exportado (una sonda con un POST abierto lo hace
+  caer); `scripts/verificar-prod.sh` prueba tres caminos, uno con la cabecera falsificada.
+
+Pruebas que no probaban lo que decían, reforzadas dentro de su mismo caso
+- 061e y 065e pasan ahora por la envoltura y con el mismo token; 246f recorre los archivos de ruta
+  (30 handlers); 247h ejecuta las siete operaciones con token contra el servidor real, con una
+  referencia con espacio, barra, tilde y almohadilla en la URL; 184e lanza diez escrituras a la vez;
+  215h compara también las filas del diario; 217e incluye bolsillos; 250f prueba la frontera exacta
+  y un content-length falso; 070h, 080h, 082e, 092f, 105f, 115f, 126e, 140h, 143e, 145e y 160h
+  ganan las aserciones que les faltaban; 190h pasa los ejemplos del contrato por los esquemas reales.
+
+Tras los arreglos: `npx vitest run` 200 archivos, 1998 pruebas, exit 0; cobertura exit 0 (src/server/agent
+98,84 % de líneas); tests/e2e/tony-ledger.spec.ts 9/9 sin reintentos.
+
+Suite e2e completa (`./e2e.sh`), dos corridas: 783 passed y 1 flaky en cada una, exit 0. El caso
+intermitente está las dos veces en tests/e2e/impacto-movil.spec.ts (TC-IMV-040h en la primera,
+TC-IMV-041e en la segunda): el panel de impacto de escritorio no aparece en 5 s tras corregir un
+gasto en el teléfono y navegar; pasa en el reintento, y el archivo solo, repetido tres veces sin
+reintentos, pasa 27/27. Causa NO determinada: no se comprobó si ocurre también sobre el commit
+anterior a la feature.

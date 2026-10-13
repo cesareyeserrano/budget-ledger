@@ -48,6 +48,8 @@ type AgentHandler<T> = (ctx: AgentContext<T>) => Response | Promise<Response>;
 type NextRouteCtx = { params: Promise<Record<string, string | string[]>> };
 
 const NO_STORE = "no-store";
+/** `/movements/ref:<lo-que-sea>` → `/movements/ref:*` en el log. */
+const REF_EN_RUTA = /\/movements\/ref(?::|%3A)[^/]*/i;
 const SIN_AGENTE = "-";
 
 let _rid = 0;
@@ -76,7 +78,8 @@ export function withAgent<T = unknown>(opts: AgentOptions<T>, handler: AgentHand
   return async (req: Request, routeCtx?: NextRouteCtx): Promise<Response> => {
     const start = performance.now();
     const rid = nextRequestId();
-    const path = new URL(req.url).pathname;
+    // La referencia de origen puede llevar el id del banco o una cuenta: no va al log.
+    const path = new URL(req.url).pathname.replace(REF_EN_RUTA, "/movements/ref:*");
     let status: number = HTTP.SERVER_ERROR;
     let agente = SIN_AGENTE;
 
@@ -108,7 +111,8 @@ export function withAgent<T = unknown>(opts: AgentOptions<T>, handler: AgentHand
       agente = token.tokenId;
 
       // 4) Tope por token, antes de leer el cuerpo. Las escrituras tienen el suyo, más bajo.
-      const esLectura = req.method === "GET";
+      // HEAD lo sirve Next con el handler de GET: cuenta como la lectura que es.
+      const esLectura = req.method === "GET" || req.method === "HEAD";
       const cupo = esLectura
         ? allow(readBucket(token.tokenId), AGENT_READS_PER_WINDOW, AGENT_WINDOW_SECONDS)
         : allow(writeBucket(token.tokenId), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS);
@@ -131,8 +135,10 @@ export function withAgent<T = unknown>(opts: AgentOptions<T>, handler: AgentHand
         await handler({ ownerId: token.ownerId, tokenId: token.tokenId, tokenName: token.name, body, req, params })
       );
     } catch (err) {
-      // El detalle se queda en el servidor; al agente solo le llega el código.
-      console.error(`[agent] ${rid} ${req.method} ${path} error:`, err);
+      // Al agente solo le llega el código. Y al log, solo el NOMBRE y el código del fallo: el error
+      // de la base trae la sentencia con sus parámetros —nota, monto, referencia—, y volcarlo entero
+      // los escribiría en el log (NFR-3412).
+      console.error(`[agent] ${rid} ${req.method} ${path} error: ${resumenDe(err)}`);
       return finish(apiError("internal_error", "Error interno", HTTP.SERVER_ERROR));
     } finally {
       // NFR-3412: el formato de withApi más el id del token (nunca el token, ni el cuerpo).
@@ -141,6 +147,21 @@ export function withAgent<T = unknown>(opts: AgentOptions<T>, handler: AgentHand
     }
   };
 }
+
+/** Nombre y código de un fallo, sin su mensaje: lo único de un error que es seguro registrar. */
+function resumenDe(err: unknown): string {
+  const e = err as { name?: unknown; code?: unknown; cause?: { name?: unknown; code?: unknown } } | null;
+  const partes = [e?.name, e?.code, e?.cause?.name, e?.cause?.code].filter((p): p is string => typeof p === "string" && p.length > 0);
+  return partes.length > 0 ? partes.join(" ") : "desconocido";
+}
+
+/**
+ * Handler de TODO método que una ruta de la superficie no ofrece. Pasa por la envoltura —así, con
+ * la puerta apagada o llegando por un proxy, responde el mismo 404 que todo lo demás en vez del
+ * 405 o el `Allow:` con que Next delataría qué rutas y métodos existen (FR-3405)— y, ya con token,
+ * responde 404: bajo esta superficie lo que no es una de las siete operaciones no existe.
+ */
+export const agentNotFound = withAgent({}, () => apiError("not_found", "No encontrado", HTTP.NOT_FOUND));
 
 /** 429 con la espera que el agente debe respetar antes de reintentar. */
 function limitado(): Response {

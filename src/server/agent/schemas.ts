@@ -18,9 +18,21 @@ export const AGENT_NOTE_MAX = 280;
 /** Prefijo con el que una ruta señala «por referencia» en vez de por id: /movements/ref:L300. */
 export const REF_KEY_PREFIX = "ref:";
 
-const nodeId = z.string().min(1).max(AGENT_ID_MAX);
-const ref = z.string().min(1).max(AGENT_REF_MAX);
-const note = z.string().max(AGENT_NOTE_MAX).nullable().optional();
+/**
+ * Texto que se puede guardar y volver a leer igual. Postgres rechaza el carácter nulo en `text`
+ * —la escritura acabaría en un 500 con la sentencia y sus parámetros en el log—, y un sustituto
+ * Unicode suelto se guarda como otro carácter: dos referencias distintas acabarían siendo la misma.
+ * Los saltos de línea y el tabulador de una nota sí valen.
+ */
+const DE_CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+/** Un sustituto alto sin su bajo detrás, o un bajo sin su alto delante. */
+const SUSTITUTO_SUELTO = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const textoLimpio = (s: string): boolean => !DE_CONTROL.test(s) && !SUSTITUTO_SUELTO.test(s);
+const MSG_TEXTO = "Contiene caracteres de control o Unicode mal formado";
+
+const nodeId = z.string().min(1).max(AGENT_ID_MAX).refine(textoLimpio, MSG_TEXTO);
+const ref = z.string().min(1).max(AGENT_REF_MAX).refine(textoLimpio, MSG_TEXTO);
+const note = z.string().max(AGENT_NOTE_MAX).refine(textoLimpio, MSG_TEXTO).nullable().optional();
 
 /** Registrar un gasto o un ingreso. El periodo NO viaja: lo deriva el servidor de la fecha. */
 const gastoOIngreso = z

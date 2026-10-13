@@ -13,8 +13,10 @@ import { closeTestDb, testDb, truncateAll } from "./helpers/db";
 import { sql } from "drizzle-orm";
 import {
   OCT, ORIGIN, agentReq, apiReq, crearToken, hoy, libro, limpiarTopes, marcarComoAgente, newUser, sembrar, superficie,
+  volcado,
 } from "./helpers/agente";
-import { closeMonthFor, insertMovement, loadLedger } from "@/server/data/ledgerRepo";
+import { calendarOf, closeMonthFor, insertMovement, loadLedger, saveStartFor } from "@/server/data/ledgerRepo";
+import { activeKeys } from "@/domain/range";
 import { applyCyclesFor } from "@/server/data/cyclesRepo";
 import { computeBalanceSeries } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
@@ -81,6 +83,13 @@ describe("FR-3407 — leer el árbol", () => {
     expect(porId["s-mercado"]).toEqual({ id: "s-mercado", name: "Mercado", type: "expense", level: "sub", parentId: "c-alimentacion", leaf: true });
     expect(porId["c-alimentacion"].leaf).toBe(false);
     expect(porId["s-viaje"]).toMatchObject({ type: "transfer", leaf: true });
+    // Una categoría SIN subcategorías es hoja (se registra sobre ella); un grupo y una categoría
+    // con hijos, no. «Es hoja» no es «es subcategoría».
+    expect(porId["c-transporte"].leaf).toBe(true);
+    expect(porId["c-salario"].leaf).toBe(true);
+    expect(porId["g-vida"].leaf).toBe(false);
+    expect(porId["c-metas"].leaf).toBe(false);
+    expect(nodes.filter((n: { leaf: boolean }) => n.leaf)).toHaveLength(7);
     expect(rev).toBe(await revision(c.userId));
   });
 
@@ -101,14 +110,24 @@ describe("FR-3407 — leer el árbol", () => {
   it("TC-AGT-072f: el agente no puede escribir sobre el árbol", async () => {
     // @aitri-tc TC-AGT-072f
     const c = await cuenta("admin@admin.com");
-    // La ruta del árbol solo exporta GET: para cualquier otro método Next responde 405 sin llegar a
-    // código de la app, y no existe una ruta /tree/[id]. No hay handler que pueda escribir.
-    expect(Object.keys(treeRoute).sort()).toEqual(["GET"]);
-    for (const metodo of ["POST", "PATCH", "DELETE", "PUT"]) expect(treeRoute).not.toHaveProperty(metodo);
-
-    const filas = await testDb().execute(sql`SELECT id, name FROM "node" WHERE owner_id = ${c.userId}`);
+    const antes = await volcado(c.userId);
+    // GET es la única operación del árbol. Los demás métodos están exportados, pero solo para
+    // contestar por la envoltura que ahí no hay nada: con token válido, 404, y la base intacta.
+    const ruta = treeRoute as unknown as Record<string, (req: Request) => Promise<Response>>;
+    expect(Object.keys(ruta).sort()).toEqual(["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]);
+    for (const metodo of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
+      const res = await ruta[metodo](agentReq("/tree", {
+        token: c.token, method: metodo, ...(metodo === "OPTIONS" || metodo === "DELETE" ? {} : { body: { id: "s-mercado", name: "Hackeado" } }),
+      }));
+      expect(res.status, metodo).toBe(404);
+      expect((await res.json()).error.code, metodo).toBe("not_found");
+      // Y sin token, 401: no delata ni que el método «no existe».
+      expect((await ruta[metodo](agentReq("/tree", { method: metodo }))).status, `${metodo} sin token`).toBe(401);
+    }
+    expect(await volcado(c.userId)).toBe(antes);
+    const filas = (await testDb().execute(sql`SELECT id, name FROM "node" WHERE owner_id = ${c.userId}`)) as unknown as { id: string; name: string }[];
     expect(filas).toHaveLength(12);
-    expect((filas as unknown as { id: string; name: string }[]).find((n) => n.id === "s-mercado")!.name).toBe("Mercado");
+    expect(filas.find((n) => n.id === "s-mercado")!.name).toBe("Mercado");
   });
 
   it("TC-AGT-073f: una cuenta que no ha guardado su libro recibe 404, no 500", async () => {
@@ -157,7 +176,9 @@ describe("FR-3415 — resumen del periodo", () => {
   it("TC-AGT-153f: periodo mal formado responde invalid_period", async () => {
     // @aitri-tc TC-AGT-153f
     const c = await cuenta("admin@admin.com", libroDelResumen);
-    for (const malo of ["2026-13", "octubre", "2026-1"]) {
+    // Mal formados, fuera del rango de años del sistema, y una clave de transición («t») en una
+    // cuenta por mes calendario, donde ese periodo no existe.
+    for (const malo of ["2026-13", "octubre", "2026-1", "9999-12", "0001-01", "1999-12", "2026-10t"]) {
       const res = await summaryGET(agentReq(`/summary?period=${malo}`, { token: c.token }));
       expect(res.status, malo).toBe(400);
       const cuerpo = await res.text();
@@ -199,6 +220,23 @@ describe("FR-3415 — resumen del periodo", () => {
       expect(r.balance.reserved, `rango de ${rango.length}`).toBe(plano.reservedBalance);
     }
     expect(r.balance.available).toBe(2_230_000);
+
+    // El caso que el rango del servidor perdía: un mes de inicio declarado ANTERIOR al primer dato,
+    // con saldo inicial. La pantalla ancla su rango en ese mes; el resumen tiene que dar lo mismo.
+    const u = await cuenta("inicio@example.com", (id) => libro(id, {
+      actuals: { "c-salario": { [OCT]: 3_000_000 }, "s-mercado": { [OCT]: 500_000 } },
+    }));
+    const inicio = await saveStartFor(u.userId, await revision(u.userId), "2026-08", 1_000_000);
+    expect(inicio.ok, JSON.stringify(inicio)).toBe(true);
+    const libroU = (await loadLedger(u.userId))!.state;
+    for (const [periodo, esperado] of [[OCT, 3_500_000], ["2026-09", 1_000_000], ["2026-08", 1_000_000]] as const) {
+      const delAgente = await (await summaryGET(agentReq(`/summary?period=${periodo}`, { token: u.token }))).json();
+      // Lo que pinta la pantalla: la serie sobre el rango activo del cliente, con su apertura.
+      const rango = activeKeys(libroU, calendarOf(libroU, OCT), OCT);
+      const enPantalla = computeBalanceSeries(libroU, rango, openingCarry(libroU, rango))[periodo].actual.available;
+      expect(enPantalla, `pantalla ${periodo}`).toBe(esperado);
+      expect(delAgente.balance.available, `agente ${periodo}`).toBe(esperado);
+    }
   });
 });
 
@@ -232,6 +270,12 @@ describe("FR-3416 — movimientos de un periodo y por referencia", () => {
     expect(manuales).toHaveLength(3);
     for (const m of delAgente) expect(m.agent).toEqual({ id: c.tokenId, name: "Agent-L" });
     for (const m of manuales) expect(m.agent).toBeNull();
+    // Montos y fechas, los de cada movimiento.
+    const resumenDe = (m: { amount: number; date: string; target: string }) => `${m.target}|${m.amount}|${m.date}`;
+    expect(movements.map(resumenDe).sort()).toEqual([
+      "c-salario|3000000|2026-10-05", "s-mercado|10000|2026-10-10", "s-mercado|50000|2026-10-10",
+      "s-restaurantes|20000|2026-10-10", "s-viaje|200000|2026-10-10",
+    ]);
 
     const l300 = movements.find((m: { ref: string }) => m.ref === "L300");
     expect(l300).toMatchObject({ type: "expense", target: "s-mercado", targetName: "Mercado", amount: 50_000, from: null, to: null });

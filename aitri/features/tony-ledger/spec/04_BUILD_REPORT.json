@@ -52,7 +52,9 @@
     "../../../src/server/http.ts",
     "../../../src/server/schemas.ts",
     "../../../tests/e2e/helpers/globalSetup.ts",
-    "../../../tests/e2e-backend/helpers/globalSetup.ts"
+    "../../../tests/e2e-backend/helpers/globalSetup.ts",
+    "../../../src/server/clock.ts",
+    "../../../src/server/rateLimit.ts"
   ],
   "setup_commands": [
     "npm run db:migrate   # aplica la migración 0013 (aditiva) a la base de desarrollo",
@@ -71,26 +73,20 @@
   "technical_debt": [
     {
       "fr_id": "FR-3403",
-      "substitution": "ADR-06 se implementa mirando el VALOR de x-forwarded-for (una sola dirección, interna: loopback más LEDGER_AGENT_SOURCES) y no su PRESENCIA, como dice 02_SYSTEM_DESIGN.md; el documento de diseño conserva el texto de la regla vieja y la tabla de rechazos comunes que la describe",
-      "reason": "El servidor de Next añade x-forwarded-for y x-forwarded-host a toda petición, así que la regla escrita en el diseño rechazaba todas las peticiones en un servidor real (medido en dev el 2026-10-13). La intención de ADR-06 y de NFR-3411 no cambia y TC-AGT-253e la cubre con ocho formas de llegar por un proxy; corregir el documento exige re-aprobar la fase 2, que invalida en cascada las fases 3 y 4. Aparece además una variable que el diseño no nombra, LEDGER_AGENT_SOURCES.",
+      "substitution": "ADR-06 se implementa mirando el VALOR de x-forwarded-for —una sola dirección, declarada en LEDGER_AGENT_SOURCES; ninguna es interna por defecto, tampoco el loopback— y no su PRESENCIA, como dice 02_SYSTEM_DESIGN.md. Además, todo método que una ruta no ofrece pasa también por la envoltura y responde 404 (el diseño decía 404/405). El documento de diseño conserva el texto de la regla vieja y la tabla de rechazos que la describe",
+      "reason": "El servidor de Next añade x-forwarded-for y x-forwarded-host a toda petición, así que la regla escrita en el diseño rechazaba todas las peticiones en un servidor real (medido en dev el 2026-10-13). La revisión adversarial mostró después que dar el loopback por interno abría la puerta con un segundo proxy local, y que Next contestaba OPTIONS y 405 sin pasar por la envoltura, delatando rutas con la puerta apagada. La intención de ADR-06, NFR-3411 y FR-3405 no cambia; TC-AGT-253e, 246f y 247h la cubren. Corregir el documento exige re-aprobar la fase 2, que invalida en cascada las fases 3 y 4. Variable que el diseño no nombra: LEDGER_AGENT_SOURCES.",
       "effort_to_fix": "low"
     },
     {
       "fr_id": "NFR-3411",
-      "substitution": "Que `tailscale serve` escribe en x-forwarded-for la dirección del cliente real se comprueba contra producción con scripts/verificar-prod.sh (comprobación 7), no dentro de la suite: las pruebas simulan esas cabeceras",
-      "reason": "La suite no tiene un tailscale serve delante. Si el frente no escribiera esa cabecera con la dirección del cliente, la puerta quedaría protegida solo por el token; la comprobación 7 lo detecta en el primer despliegue porque recibiría 401 en vez de 404.",
-      "effort_to_fix": "low"
+      "substitution": "La regla de «solo red interna» mantiene la puerta fuera del frente público, pero NO autentica a un cliente que conecta directo al puerto de la app: ese elige la cabecera x-forwarded-for, así que para él la única barrera es el token. Y que `tailscale serve` reescribe esa cabecera con la dirección del cliente real se comprueba contra producción con scripts/verificar-prod.sh (comprobación 7: URL pública, URL pública con la cabecera falsificada y puerto publicado en el host), no dentro de la suite",
+      "reason": "Un route handler de Next no ve la dirección del socket: solo la cabecera, que Next rellena únicamente si el cliente no la trajo. La separación de verdad es un listener o un sidecar que sirva solo /api/agent en la red del agente, y queda fuera de esta entrega. Mitigaciones hechas: ningún origen por defecto, bloques de /16 o más estrechos, la guía pide la IP fija del agente y no la subred, y la comprobación 7 falla si por cualquiera de los tres caminos la puerta contesta algo distinto de 404. Derivado, también sin resolver: por la red Docker compartida el contenedor del agente alcanza TODA la app en HTTP plano (el inicio de sesión incluido), no solo la puerta.",
+      "effort_to_fix": "medium"
     },
     {
       "fr_id": "FR-3406",
       "substitution": "El cubo de intentos con token inválido es uno solo, global, y no uno por dirección de origen como dice el criterio de aceptación",
       "reason": "Un route handler de Next no ve la IP del socket, y una petición que trae la dirección de otro origen en x-forwarded-for se rechaza antes de mirar el token (ADR-06), así que no hay una dirección fiable por la que separar. El cubo solo se consulta cuando el token NO resolvió: agotarlo no deja fuera a un token válido (TC-AGT-063f).",
-      "effort_to_fix": "medium"
-    },
-    {
-      "fr_id": "FR-3411",
-      "substitution": "Corregir la fecha de un movimiento hacia un periodo que todavía no tiene ningún dato en el libro se rechaza con 400 invalid_date",
-      "reason": "Es el comportamiento heredado de editMovement, la misma mutación que usa la edición manual: solo acepta periodos del rango con datos. Se dejó igual para no dar al agente una regla distinta de la de la app (NFR-3404); en un libro en uso los periodos del horizonte ya tienen plan. Documentado en docs/agent-api.md y en TC-AGT-111e.",
       "effort_to_fix": "medium"
     },
     {
@@ -115,6 +111,24 @@
       "fr_id": "FR-3403",
       "substitution": "TC-AGT-034f y TC-AGT-247h, planeados como integración y unitaria, se ejecutan como e2e contra el build de producción (tests/e2e/tony-ledger.spec.ts)",
       "reason": "Que una ruta o un método inexistentes respondan 404/405 y que todo handler exija token solo se puede observar pasando por el enrutador de Next; en proceso no hay enrutador. Es una prueba más fuerte que la planeada, no una más débil.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3415",
+      "substitution": "El criterio pide «el resumen y el registro responden en ≤ 1000 ms». No hay ninguna prueba que mida tiempo: TC-AGT-262e, 267h y 268f afirman TRABAJO —el mismo número de sentencias SQL con un libro de 12 nodos que con uno de 60 nodos y 24 periodos, y cero escrituras en las lecturas—",
+      "reason": "Un tiempo de reloj afirmado dentro de la suite mide al arnés y cae bajo instrumentación de cobertura con el código sano; es la regla del propio plan de pruebas. El conteo detecta lo que el umbral quería detectar (una consulta por nodo o por periodo). Lo que queda sin medir es el coste de cómputo con el libro real: cada petición carga el libro entero, con todos sus movimientos históricos.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3409",
+      "substitution": "El reintento se compara contra el movimiento TAL COMO ESTÁ AHORA, no contra el cuerpo que lo creó: si el dueño lo corrigió en la app, reintentar el cuerpo original responde 409 reference_conflict (con el movimiento vigente en el detalle) en vez de 200; y si el dueño lo borró, la referencia queda libre y un reintento tardío lo crea de nuevo",
+      "reason": "Distinguirlo exige guardar con la marca una huella del cuerpo original y una lápida de las referencias borradas: una columna y una tabla más que el diseño no contempla. No se duplica dinero en ningún caso mientras el movimiento exista. El contrato (docs/agent-api.md) le dice al agente cómo leer ese 409 y que no reintente lo que el dueño ya pudo revisar.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3414",
+      "substitution": "TC-AGT-212f no afirma la cifra del Balance (su plan pedía «el Balance muestra el mismo Disponible que GET /api/v1/ledger permite derivar») y TC-AGT-200h no afirma que la cookie de sesión conserve nombre y atributos",
+      "reason": "212f comprueba que en grilla, Detalle y teléfono no aparece ninguna etiqueta y que la celda vale lo sembrado; la igualdad de cifras con y sin marca la prueban TC-AGT-211e (dominio) y TC-AGT-156e (resumen contra el rango de la pantalla). La cookie la gestiona Better Auth, que esta feature no toca, y la cubren las pruebas de autenticación existentes.",
       "effort_to_fix": "low"
     }
   ],

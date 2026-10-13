@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { AGENT_ERROR_CODES } from "@/server/agent/codes";
+import { agentMovementSchema, agentPatchSchema } from "@/server/agent/schemas";
 
 const ROOT = process.cwd();
 const leer = (ruta: string): string => readFileSync(path.join(ROOT, ruta), "utf8");
@@ -47,6 +48,16 @@ describe("FR-3419 — el contrato documentado", () => {
     for (const pieza of ["agent-token.mjs create", "agent-token.mjs list", "agent-token.mjs revoke", "LEDGER_AGENT_API", "LEDGER_AGENT_SOURCES"]) {
       expect(doc, pieza).toContain(pieza);
     }
+    // Los ejemplos de PETICIÓN son cuerpos que el servidor acepta: se pasan por los esquemas reales.
+    // El agente se va a construir leyendo este documento; un ejemplo que diera 422 lo engañaría.
+    const jsonDe = (seccion: string): unknown[] =>
+      [...seccion.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]!));
+    const peticionesPost = jsonDe(post.split("Answers:")[0]!);
+    expect(peticionesPost).toHaveLength(2);
+    for (const cuerpo of peticionesPost) expect(agentMovementSchema.safeParse(cuerpo).success, JSON.stringify(cuerpo)).toBe(true);
+    const patch = secciones.find((s) => s.startsWith("4. `PATCH /movements/{key}`"))!;
+    const [cuerpoPatch] = jsonDe(patch);
+    expect(agentPatchSchema.safeParse(cuerpoPatch).success, JSON.stringify(cuerpoPatch)).toBe(true);
     // Cada cifra del resumen, con el nombre que le da la app.
     for (const cifra of ["Presupuestado", "Ejecutado", "Disponible", "Saldo reservado", "Saldo de bolsillo", "`remaining`"]) {
       expect(doc, cifra).toContain(cifra);

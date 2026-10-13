@@ -277,20 +277,29 @@ with its own token. It is **off by default**; a deployment without an agent need
 section. The contract is in `docs/agent-api.md`.
 
 - **Switch.** `LEDGER_AGENT_API=on` enables it; any other value keeps it off (`404` on every route).
-- **Where it is served from.** Only requests that arrive directly: loopback always, plus the blocks
-  in `LEDGER_AGENT_SOURCES` (IPv4 or IPv4 CIDR, comma-separated). The Next.js server sets
-  `X-Forwarded-For` to the connecting address when the client did not send it, and a proxy sets it
-  to the real client's address — so anything that came through `tailscale serve` or Nginx is not
-  internal and gets `404`, with or without a valid token. The token is required in every case.
-  **Do not** add the tailnet range or `0.0.0.0/0` to `LEDGER_AGENT_SOURCES`.
+- **Where it is served from.** Only from the addresses declared in `LEDGER_AGENT_SOURCES` (IPv4, or
+  IPv4 CIDR of `/16` or narrower, comma-separated). **No address is internal by default — not even
+  loopback.** The Next.js server sets `X-Forwarded-For` to the connecting address when the client
+  did not send it, and a proxy that rewrites that header sets it to the real client's address — so
+  what came through `tailscale serve` is not a declared source and gets `404`, with or without a
+  valid token.
+- **What this does and does not protect.** It keeps the door off the public front. It does **not**
+  authenticate a client that connects straight to the app's port: that client chooses the header,
+  so for it the token is the only barrier. Therefore: declare the agent's **fixed IP**, not a
+  subnet (the Docker network's gateway, `.1`, is the address published-port traffic arrives from);
+  never declare the tailnet range; and do not declare `127.0.0.1` in production — with a second
+  local proxy (Nginx behind `tailscale serve`) every external request arrives as loopback.
 - **Network.** `docker-compose.agent.yml` puts the app on a Docker network shared only with the
-  agent's container (alias `t-ledger`); the database is not on it. Create the network once with a
-  fixed subnet and declare that same subnet in `LEDGER_AGENT_SOURCES`:
+  agent's container (alias `t-ledger`); the database is not on it. IPv4 only.
 
   ```bash
   docker network create --subnet 172.30.34.0/24 ledger-agent
   docker compose -f docker-compose.yml -f docker-compose.agent.yml up -d
+  # .env:  LEDGER_AGENT_API=on   LEDGER_AGENT_SOURCES=172.30.34.10   (the agent's ipv4_address)
   ```
+
+  Through that network the agent's container reaches the **whole** app over plain HTTP, not only
+  `/api/agent/v1`. Its token is useless there, but the sign-in route is reachable from it.
 
 - **Tokens.** Created, listed and revoked only from a terminal — no HTTP route does it:
 
@@ -302,8 +311,11 @@ section. The contract is in `docs/agent-api.md`.
 
   The token is printed once and only its hash is stored. Revoking takes effect on the next request.
 - **Emergency stop.** Revoke the token, or set `LEDGER_AGENT_API=` and restart the app.
-- **Verification.** `scripts/verificar-prod.sh` checks that the door is **not** reachable through the
-  public URL (check 7).
+- **Verification.** `scripts/verificar-prod.sh` (check 7) confirms the door answers `404` through the
+  public URL — also when the request forges `X-Forwarded-For: 127.0.0.1` — and through the port
+  published on the host. A `401` in any of the three means the door is reachable from there and
+  only the token protects it. Confirm the positive path yourself, from the agent's container:
+  `GET http://t-ledger:3000/api/agent/v1/tree` with the token must answer `200`.
 
 ## Branches
 Three fixed branches, and no other long-lived ones:

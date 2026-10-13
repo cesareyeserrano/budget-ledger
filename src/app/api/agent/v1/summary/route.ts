@@ -4,7 +4,7 @@
  *   pantalla (FR-3415). Sin `period`, el vigente.
  * Dependencies: @/server/agent/http, @/server/agent/responses, @/server/data/agentRepo, @/server/clock
  */
-import { withAgent } from "@/server/agent/http";
+import { agentNotFound, withAgent } from "@/server/agent/http";
 import { readError } from "@/server/agent/responses";
 import { json } from "@/server/http";
 import { serverToday } from "@/server/clock";
@@ -17,3 +17,9 @@ const getHandler = withAgent({}, async ({ ownerId, req }) => {
 });
 
 export const GET = (req: Request): Promise<Response> => getHandler(req);
+// Lo que esta ruta no ofrece también pasa por la envoltura: apagada o por un proxy, 404 como todo.
+export const POST = (req: Request): Promise<Response> => agentNotFound(req);
+export const PUT = (req: Request): Promise<Response> => agentNotFound(req);
+export const PATCH = (req: Request): Promise<Response> => agentNotFound(req);
+export const DELETE = (req: Request): Promise<Response> => agentNotFound(req);
+export const OPTIONS = (req: Request): Promise<Response> => agentNotFound(req);

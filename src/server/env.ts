@@ -56,9 +56,10 @@ const baseSchema = z.object({
   // Feature tony-ledger (FR-3405): interruptor de la superficie para agentes (/api/agent/v1).
   // Opcional y APAGADA por defecto: solo el valor exacto "on" la enciende.
   LEDGER_AGENT_API: z.string().optional(),
-  // Feature tony-ledger (ADR-06): orígenes internos, ADEMÁS del loopback, desde los que se atiende
-  // la superficie del agente. Coma-separado, IPv4 o CIDR IPv4 (p. ej. la subred de la red Docker
-  // que comparte con el agente). Una entrada inválida aborta el arranque nombrando la variable.
+  // Feature tony-ledger (ADR-06): los ÚNICOS orígenes desde los que se atiende la superficie del
+  // agente. Ninguno es interno por defecto, tampoco el loopback. Coma-separado, IPv4 o CIDR IPv4 de
+  // /16 o más estrecho (lo ideal: la IP fija del contenedor del agente). Una entrada inválida
+  // aborta el arranque nombrando la variable.
   LEDGER_AGENT_SOURCES: z.string().optional(),
   // Feature ciclos (FLAG-2): zona horaria en la que el servidor decide «hoy» (IANA).
   LEDGER_TZ: z.string().optional(),
@@ -66,7 +67,7 @@ const baseSchema = z.object({
   LEDGER_TEST_OVERRIDES: z.string().optional(),
   LEDGER_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   LEDGER_NOW: z.string().optional(),
-  LEDGER_TEST_FAIL_AFTER: z.enum(["first_insert"]).optional(),
+  LEDGER_TEST_FAIL_AFTER: z.enum(["first_insert", "movement_insert"]).optional(),
 });
 
 export type Env = z.infer<typeof baseSchema> & {
@@ -88,7 +89,7 @@ export type Env = z.infer<typeof baseSchema> & {
    * configuración es justo lo que el interruptor existe para evitar.
    */
   agentEnabled: boolean;
-  /** Bloques internos adicionales al loopback para la superficie del agente (ADR-06). */
+  /** Los orígenes desde los que se atiende la superficie del agente (ADR-06). Vacío = ninguno. */
   agentSources: string[];
 };
 
@@ -135,7 +136,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   const agentSources = (env.LEDGER_AGENT_SOURCES ?? "").split(",").map((o) => o.trim()).filter(Boolean);
   const invalida = agentSources.find((o) => !isValidSource(o));
   if (invalida !== undefined) {
-    throw new Error(`[env] LEDGER_AGENT_SOURCES inválida: «${invalida}» no es una IPv4 ni un bloque CIDR IPv4`);
+    throw new Error(`[env] LEDGER_AGENT_SOURCES inválida: «${invalida}» no es una IPv4 ni un bloque CIDR IPv4 de /16 o más estrecho`);
   }
   return { ...env,
     tz: env.LEDGER_TZ || "America/Bogota", allowedOrigins, googleEnabled, trustProxy, smtpEnabled,

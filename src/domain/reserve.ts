@@ -566,7 +566,16 @@ export function undoAporteOp(state: LedgerState, movementId: string, periods: Pe
   const bajada = applyReserveCellEdit(
     state, { leafId: mv.to, period: mv.period, plane: "actual", newAmount: actual - mv.amount }, periods
   );
-  if ("rejected" in bajada) return { rejected: bajada.rejected };
+  if ("rejected" in bajada) {
+    const v = bajada.rejected;
+    // El piso llega con el saldo NEGATIVO que quedaría; quien lo recibe necesita saber cuánto HAY
+    // en el bolsillo, que es lo que ya se usó y por eso no se puede deshacer (mismo re-mapeo que
+    // `verdictOf` hace para retiros y moveres).
+    if (v !== "invalid_target" && !v.ok && v.rule === "piso" && v.leafId) {
+      return { rejected: { ...v, limit: Math.max(0, resolvedBalance(state, v.leafId, v.period, "actual", periods)) } };
+    }
+    return { rejected: v };
+  }
   return { state: { ...bajada.state, movements: bajada.state.movements.filter((m) => m.id !== movementId) } };
 }
 

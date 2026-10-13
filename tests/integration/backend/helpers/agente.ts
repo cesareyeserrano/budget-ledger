@@ -145,10 +145,19 @@ export function apiReq(
   });
 }
 
-/** Enciende o apaga la superficie del agente para el proceso de pruebas. */
-export function superficie(estado: "on" | "off" | string): void {
+/** El origen que declaran las pruebas: el loopback, que es de donde «llega» su petición (`DE_NEXT`). */
+export const ORIGEN_DE_PRUEBAS = "127.0.0.1";
+
+/**
+ * Enciende o apaga la superficie del agente para el proceso de pruebas.
+ * @param estado valor de LEDGER_AGENT_API (`off` la quita)
+ * @param sources valor de LEDGER_AGENT_SOURCES; por defecto, solo el loopback. `""` = ninguno.
+ */
+export function superficie(estado: "on" | "off" | string, sources: string = ORIGEN_DE_PRUEBAS): void {
   if (estado === "off") delete process.env.LEDGER_AGENT_API;
   else process.env.LEDGER_AGENT_API = estado;
+  if (sources === "") delete process.env.LEDGER_AGENT_SOURCES;
+  else process.env.LEDGER_AGENT_SOURCES = sources;
   __resetEnvForTests();
 }
 
@@ -178,7 +187,13 @@ export async function capturarLogs(fn: () => Promise<unknown>): Promise<string[]
 export async function volcado(ownerId: string): Promise<string> {
   const db = testDb();
   const partes: string[] = [];
-  for (const [tabla, orden] of [["node", "id"], ["amount_cell", "node_id, period, kind"], ["movement", "id"], ["ledger", "owner_id"]] as const) {
+  // Todas las tablas con datos de la cuenta, no solo las cuatro del libro: una ruta de ciclos, de
+  // cierre o de comentarios escribe en las otras.
+  const tablas = [
+    ["node", "id"], ["amount_cell", "node_id, period, kind"], ["movement", "id"], ["ledger", "owner_id"],
+    ["cell_note", "id"], ["cycle_config_version", "id"], ["closure_event", "1"], ["relocation_origin", "1"],
+  ] as const;
+  for (const [tabla, orden] of tablas) {
     const filas = await db.execute(sql.raw(
       `SELECT * FROM "${tabla}" WHERE owner_id = '${ownerId.replace(/'/g, "''")}' ORDER BY ${orden}`
     ));

@@ -17,12 +17,13 @@ The door is **off by default**. With it off, every route under `/api/agent/v1` a
 | Variable | Meaning |
 |---|---|
 | `LEDGER_AGENT_API` | Only the exact value `on` enables the door. Anything else, or absent, keeps it off. |
-| `LEDGER_AGENT_SOURCES` | Internal sources, **besides loopback**, the door serves. Comma-separated IPv4 addresses or IPv4 CIDR blocks, e.g. the subnet of the Docker network the app shares with the agent. An invalid entry aborts start-up. |
+| `LEDGER_AGENT_SOURCES` | The **only** addresses the door serves. No address is internal by default, not even loopback. Comma-separated IPv4 addresses, or IPv4 CIDR blocks of `/16` or narrower — ideally the agent container's fixed IP. An invalid entry aborts start-up. |
 
-The door only serves requests that arrive **directly** — from the machine itself or from a declared
-internal network. A request that came through the public front (`tailscale serve`, Nginx) carries
-the real client's address in `X-Forwarded-For` and gets `404`, with or without a valid token. See
-`DEPLOYMENT.md`, "Agent door".
+The door only serves requests whose connecting address is declared there. A request that came
+through the public front (`tailscale serve`) carries the real client's address in
+`X-Forwarded-For` and gets `404`, with or without a valid token. This keeps the door off the public
+front; it does not replace the token, which is required in every case. See `DEPLOYMENT.md`,
+"Agent door".
 
 ## Tokens
 
@@ -58,8 +59,9 @@ The account always comes from the token. No operation takes an owner id.
 ### Limits
 
 Per token, in a 60-second sliding window: **30 writes** (`POST`, `PATCH`, `DELETE`) and **120 reads**
-(`GET`). Beyond that the answer is `429` with `Retry-After: 60`. Requests with an invalid token are
-limited too (20 per 60 s).
+(`GET`). Beyond that the answer is `429` with `Retry-After: 60`. **A rejected request counts too**:
+an agent that keeps hammering while limited (more than the limit per minute) never gets out — on a
+`429`, wait the full 60 seconds before sending anything. Requests with an invalid token are limited too (20 per 60 s).
 
 ## The movement object
 
@@ -143,9 +145,13 @@ A pocket operation — reserve, withdraw or move:
 
 - **The period is never sent.** The server derives it from `date` with the account's own calendar
   (calendar month, or pay cycle). A movement always lands in the period of its date.
-- `date`: `YYYY-MM-DD` (a time, `YYYY-MM-DDTHH:mm`, is accepted too).
+- `date`: `YYYY-MM-DD` (a time, `YYYY-MM-DDTHH:mm`, is accepted too). The period comes from the
+  **day as written**, with no time-zone conversion: send the local day of the transaction, never a
+  UTC timestamp — `2026-11-01T00:30:00Z` lands in November even if it was still 31 October locally.
+- Text fields (`note`, `ref`, ids) must not contain control characters.
 - `note`: optional, up to 280 characters.
-- `ref`: **required**, 1–128 characters, opaque. See below.
+- `ref`: **required**, 1–128 characters, opaque. Prefer an identifier that is not itself sensitive
+  (a sequence number, or a hash): it travels in URLs. See below.
 
 Answers: `201` with `{ "movement": …, "revision": n }` when created.
 
@@ -163,6 +169,12 @@ transaction id plus the account. It is unique per account among the movements th
 So a retry after a network error is safe: send the same body again. Two simultaneous requests with
 the same `ref` leave one movement. Undoing a movement frees its `ref`.
 
+The comparison is against the movement **as it is now**. If the owner corrected it in the app
+(amount, date or category), a retry of the original body answers `409` with the current movement
+in `error.detail.movement` — it exists; treat it as recorded and do not record it again. If the
+owner deleted it in the app, its `ref` is free again and a late retry would create it anew: do not
+retry a movement the owner may have had time to review.
+
 ### 4. `PATCH /movements/{key}` — correct an expense or an income
 
 `{key}` is the movement id, or `ref:` followed by the URL-encoded reference (`/movements/ref:L300`).
@@ -176,7 +188,6 @@ be changed. Answers `200` with `{ "movement": …, "revision": n }`.
 
 - **Only movements recorded by an agent.** A movement the owner registered by hand answers `404`.
 - A pocket operation cannot be corrected (`422 unsupported_type`): undo it and record it again.
-- A movement can only be moved to a period that already has data in the ledger.
 
 ### 5. `DELETE /movements/{key}` — undo a movement
 
@@ -190,9 +201,14 @@ DELETE /api/agent/v1/movements/ref:L300
 { "revision": 413 }
 ```
 
-The rules still apply: undoing a reserve whose money was already withdrawn is
-rejected (`domain_rule_violation`, rule `piso`), and if the owner already lowered that pocket's cell
-in the app the answer is `422 cell_already_changed` — there is nothing left to subtract.
+The rules still apply: undoing a reserve whose money was already withdrawn or moved is rejected
+(`domain_rule_violation`, rule `piso`; `limit` is what the pocket holds now), and if the owner
+already lowered that pocket's cell in the app the answer is `422 cell_already_changed` — there is
+nothing left to subtract.
+
+A reserve lives in the pocket's cell for the period; its row in the journal only accompanies it. If
+the owner lowers that cell by hand, the rows the agent reads in `GET /movements` may add up to more
+than the cell: the cell (`pockets[].contributed` in the summary) is the truth.
 
 ### 6. `GET /summary` — the figures of a period
 
@@ -252,12 +268,12 @@ A rejected write changes nothing: no movement, no cell, no revision.
 | Code | HTTP | When |
 |---|---|---|
 | `unauthorized` | 401 | No token, malformed, unknown or revoked. The same answer in all four cases. |
-| `not_found` | 404 | The door is off; the request came through a proxy; the account has no ledger yet; the movement, reference or node does not exist **in this account**; or the movement was registered by hand. |
+| `not_found` | 404 | The door is off; the request did not come from a declared source; the route or method is not one of the seven operations; the account has no ledger yet; the movement, reference or node does not exist **in this account**; or the movement was registered by hand. |
 | `rate_limited` | 429 | The token's limit for the window was reached. `Retry-After: 60`. |
 | `payload_too_large` | 413 | Body over 16 KiB. |
 | `invalid_payload` | 422 | The body does not validate: unknown field, wrong type, amount not a positive integer, impossible date, note or reference too long. |
 | `invalid_target` | 422 | The leaf does not exist, is not a leaf, or is not of the movement's type; or the `from`/`to` of a pocket operation are not valid. |
-| `invalid_period` | 400 | `period` is not `YYYY-MM`. |
+| `invalid_period` | 400 | `period` is not a period of the account's calendar (`YYYY-MM`, years 2000–2100). |
 | `invalid_date` | 400 | `date` is missing or malformed, or no period of the ledger contains it. |
 | `closed_period_violation` | 422 | The movement's period is closed. |
 | `domain_rule_violation` | 422 | A pocket rule would be broken. `error.detail.violations` lists `{ rule, period, leafId?, limit }`: `techo` (more than the period allows; `limit` is the most that fits), `piso` (more than the pocket holds; `limit` is what it holds), `deficit` (later periods already used that money). |
@@ -286,8 +302,8 @@ Every movement an agent records shows a label with the token's name in the cell 
 in the category screen (phone). The owner can edit or delete it from the app like any other; the
 label stays with the movement and the browser cannot forge, change or remove it.
 
-Each request leaves one log line on the server with the token id — never the token, the note or the
-amount:
+Each request leaves one log line on the server with the token id — never the token, the note, the
+amount or the reference (`/movements/ref:*`):
 
 ```
 [2026-10-10T15:04:05.000Z] POST /api/agent/v1/movements 201 (18ms) rid=00a1 agent=agt_example

@@ -1156,7 +1156,8 @@ export async function insertMovementWith<E>(
       agentName: origin?.agentName ?? null,
     });
     // SOLO PRUEBAS: fuerza un fallo a mitad de la transacción para comprobar que revierte entera.
-    testFailAfter("first_insert");
+    // Paso propio: el de la reubicación de ciclos (`first_insert`) no debe cortar también esto.
+    testFailAfter("movement_insert");
 
     // Upsert de TODAS las celdas `actual` cuyo valor cambió con la mutación (diff completo):
     // un gasto/ingreso toca una; una operación de reserva De→A, hasta dos (FR-1004).
@@ -1221,6 +1222,8 @@ export interface WriteMovementOpts {
   soloDeAgente?: boolean;
   /** Admite movimientos de bolsillo: deshacer una reserva, un retiro o un mover (FR-3412). */
   bolsillos?: boolean;
+  /** Periodo al que la mutación puede llevar el movimiento; se añade al rango que la juzga. */
+  destino?: (prev: LedgerState) => PeriodKey | null;
 }
 
 /**
@@ -1273,7 +1276,10 @@ export async function writeMovementWith(
       return { ok: false, closedViolation: true, periods: [actual.period] };
     }
 
-    const scope = closureScope(prev, actual.period);
+    const haciaDonde = opts.destino?.(prev) ?? null;
+    const scope = haciaDonde
+      ? unionScope(prev, closureScope(prev, actual.period), closureScope(prev, haciaDonde))
+      : closureScope(prev, actual.period);
     const res = mutar(prev, cal, scope, actual);
     if ("rejected" in res) {
       if (res.rejected === "not_found") return { ok: false, notFound: true };

@@ -7,7 +7,7 @@
  * Dependencies: @/server/agent/http, @/server/agent/responses, @/server/agent/schemas,
  *   @/server/data/agentRepo, @/server/sync
  */
-import { withAgent } from "@/server/agent/http";
+import { agentNotFound, withAgent } from "@/server/agent/http";
 import { writeRejection } from "@/server/agent/responses";
 import { agentPatchSchema, type AgentPatchInput } from "@/server/agent/schemas";
 import { json } from "@/server/http";
@@ -34,3 +34,8 @@ const deleteHandler = withAgent({}, async ({ ownerId, params }) => {
 type Ctx = { params: Promise<{ key: string }> };
 export const PATCH = (req: Request, ctx: Ctx): Promise<Response> => patchHandler(req, ctx);
 export const DELETE = (req: Request, ctx: Ctx): Promise<Response> => deleteHandler(req, ctx);
+// Lo que esta ruta no ofrece también pasa por la envoltura: apagada o por un proxy, 404 como todo.
+export const GET = (req: Request, ctx: Ctx): Promise<Response> => agentNotFound(req, ctx);
+export const POST = (req: Request, ctx: Ctx): Promise<Response> => agentNotFound(req, ctx);
+export const PUT = (req: Request, ctx: Ctx): Promise<Response> => agentNotFound(req, ctx);
+export const OPTIONS = (req: Request, ctx: Ctx): Promise<Response> => agentNotFound(req, ctx);

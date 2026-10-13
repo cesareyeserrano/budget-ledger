@@ -120,7 +120,14 @@ describe("FR-3408 — registrar un gasto o un ingreso", () => {
       agent: { id: c.tokenId, name: "Agent-L" },
     });
     expect(revision).toBe(antes + 1);
+    expect(movement.date).toBe("2026-10-10");
     expect(await celda(c.userId, "s-mercado", OCT)).toBe(150_000);
+    // La fila, tal como quedó en la base.
+    const [fila] = await filasDeMovimiento(c.userId);
+    expect(fila).toMatchObject({
+      id: movement.id, type: "expense", cat_id: "c-alimentacion", sub_id: "s-mercado", target: "s-mercado",
+      amount: "50000", period: OCT, date: "2026-10-10", note: "Éxito", origin_ref: "L300", agent_name: "Agent-L",
+    });
 
     // Los ancestros suben exactamente 50.000 por roll-up.
     const r = await (await summaryGET(agentReq(`/summary?period=${OCT}`, { token: c.token }))).json();
@@ -168,6 +175,9 @@ describe("FR-3408 — registrar un gasto o un ingreso", () => {
     expect(movement.period).toBe(delServidor.period);
     expect(delServidor).toMatchObject({ mode: "cycle", start: "2026-10-21", end: "2026-11-20" });
     expect(movement.period).not.toBe(calendarOf(state).periodForDate("2026-10-10"));
+    // Y el dinero cayó en ESE periodo, no en el del mes calendario de la fecha.
+    expect(await celda(c.userId, "s-mercado", movement.period)).toBe(20_000);
+    expect(await celda(c.userId, "s-mercado", calendarOf(state).periodForDate("2026-10-10"))).toBe(100_000);
   });
 
   it("TC-AGT-083f: destino inexistente, no hoja o de otro tipo: invalid_target y nada cambia", async () => {
@@ -278,9 +288,17 @@ describe("FR-3409 — referencia de origen e idempotencia", () => {
     expect(error.detail.movement).toMatchObject({ amount: 50_000, ref: "L300" });
     expect(await volcado(c.userId)).toBe(antes);
     expect(await celda(c.userId, "s-mercado", OCT)).toBe(150_000);
-    // También es conflicto con otra hoja o con otra fecha.
+    // También es conflicto con otra hoja, con otra fecha o con otro tipo de movimiento.
     expect((await registrar(c, gasto("L300", 50_000, "s-restaurantes"))).status).toBe(409);
     expect((await registrar(c, gasto("L300", 50_000, "s-mercado", "2026-10-11"))).status).toBe(409);
+    expect((await registrar(c, { type: "income", target: "c-salario", amount: 50_000, date: "2026-10-10", ref: "L300" })).status).toBe(409);
+    expect((await registrar(c, { type: "transfer", from: "@disponible", to: "s-viaje", amount: 50_000, date: "2026-10-10", ref: "L300" })).status).toBe(409);
+    // Y en una operación de bolsillo, con otros extremos.
+    await creado(c, reservar("L310", 200_000));
+    const otrosExtremos = await registrar(c, reservar("L310", 200_000, "s-carro"));
+    expect(otrosExtremos.status).toBe(409);
+    expect((await otrosExtremos.json()).error.detail.movement).toMatchObject({ to: "s-viaje", ref: "L310" });
+    expect(await celda(c.userId, "s-carro", OCT)).toBe(0);
   });
 
   it("TC-AGT-093e: la misma referencia en dos cuentas no choca", async () => {
@@ -438,6 +456,9 @@ describe("FR-3410 — operaciones de bolsillo", () => {
       { from: "@disponible", to: "@disponible" },
       { from: "s-mercado", to: "@disponible" },
       { from: "@disponible", to: "s-noexiste" },
+      { from: "@disponible", to: "s-mercado" },   // el destino es una hoja de gasto, no un bolsillo
+      { from: "s-viaje", to: "c-salario" },       // ni una de ingreso
+      { from: "@disponible", to: "c-metas" },     // ni una categoría de bolsillos con hijos
     ];
     for (const [i, e] of extremos.entries()) {
       const res = await registrar(c, { type: "transfer", ...e, amount: 1_000, date: "2026-10-10", ref: `LX${i}` });
@@ -490,12 +511,8 @@ describe("FR-3411 — corregir un gasto o ingreso del agente", () => {
 
   it("TC-AGT-111e: cambiar el monto y la fecha a otro periodo abierto", async () => {
     // @aitri-tc TC-AGT-111e
-    // Noviembre existe en el libro (tiene plan): un movimiento solo se puede llevar a un periodo
-    // del rango con datos — la misma regla que aplica la edición manual (`editMovement`).
-    const c = await cuenta("admin@admin.com", (id) => libro(id, {
-      budgets: { "s-mercado": { [NOV]: 400_000 } },
-      actuals: { "c-salario": { [OCT]: 3_000_000 }, "s-mercado": { [OCT]: 100_000 } },
-    }));
+    // Noviembre todavía NO tiene ningún dato en el libro: la corrección lo añade al rango.
+    const c = await cuenta("admin@admin.com");
     const m = await creado(c, gasto("L300"));
     expect(await celda(c.userId, "s-mercado", OCT)).toBe(150_000);
 
@@ -507,6 +524,14 @@ describe("FR-3411 — corregir un gasto o ingreso del agente", () => {
     expect((await movido.json()).movement.period).toBe(NOV);
     expect(await celda(c.userId, "s-mercado", OCT)).toBe(100_000);
     expect(await celda(c.userId, "s-mercado", NOV)).toBe(45_000);
+    // Y hacia atrás, a un mes anterior al primer dato; y cruzando el año.
+    expect((await corregir(c, m.id, { date: "2026-09-30" })).status).toBe(200);
+    expect(await celda(c.userId, "s-mercado", SEP)).toBe(45_000);
+    expect(await celda(c.userId, "s-mercado", NOV)).toBe(0);
+    const alOtroAnio = await corregir(c, m.id, { date: "2027-01-01" });
+    expect(alOtroAnio.status).toBe(200);
+    expect((await alOtroAnio.json()).movement).toMatchObject({ period: "2027-01", date: "2027-01-01", amount: 45_000 });
+    expect(await celda(c.userId, "s-mercado", "2027-01")).toBe(45_000);
   });
 
   it("TC-AGT-112f: un movimiento registrado a mano no se puede corregir", async () => {
@@ -561,6 +586,18 @@ describe("FR-3411 — corregir un gasto o ingreso del agente", () => {
     expect(res.status).toBe(422);
     expect((await res.json()).error.code).toBe("unsupported_type");
     expect(await celda(c.userId, "s-viaje", OCT)).toBe(200_000);
+
+    // Y un gasto no se puede llevar a un destino que no sea una hoja de gasto de ESTA cuenta.
+    const otra = await cuenta("otra@example.com", (id) => libro(id, { prefijo: "b-" }));
+    const g = await creado(c, gasto("L300"));
+    const antes = await volcado(c.userId);
+    for (const destino of ["s-noexiste", "c-salario", "c-alimentacion", "g-vida", "s-viaje", "b-s-mercado"]) {
+      const r = await corregir(c, g.id, { target: destino });
+      expect(r.status, destino).toBe(422);
+      expect((await r.json()).error.code, destino).toBe("invalid_target");
+    }
+    expect(await volcado(c.userId)).toBe(antes);
+    expect(otra.userId).not.toBe(c.userId);
   });
 
   it("TC-AGT-117e: corregir por referencia funciona igual y la marca no cambia", async () => {
@@ -615,7 +652,8 @@ describe("FR-3412 — deshacer un movimiento del agente", () => {
     expect(res.status).toBe(422);
     const { error } = await res.json();
     expect(error.code).toBe("domain_rule_violation");
-    expect(error.detail.violations[0]).toMatchObject({ rule: "piso", leafId: "s-viaje" });
+    // El límite es lo que el bolsillo TIENE ahora (50.000), no un saldo negativo.
+    expect(error.detail.violations).toEqual([{ rule: "piso", period: OCT, leafId: "s-viaje", limit: 50_000 }]);
     expect(await volcado(c.userId)).toBe(antes);
     expect(await celda(c.userId, "s-viaje", OCT)).toBe(200_000);
   });
@@ -670,6 +708,18 @@ describe("FR-3412 — deshacer un movimiento del agente", () => {
     expect((await deshacer(c, retiro.id)).status).toBe(200);
     expect([await saldo(c, "s-viaje"), await saldo(c, "s-carro")]).toEqual([200_000, 0]);
     expect((await filasDeMovimiento(c.userId)).map((f) => f.origin_ref)).toEqual(["L310"]);
+
+    // Deshacer un mover cuyo dinero YA se sacó del destino dejaría ese bolsillo en negativo: no.
+    const otroMover = await creado(c, { type: "transfer", from: "s-viaje", to: "s-carro", amount: 30_000, date: "2026-10-13", ref: "L320" });
+    await creado(c, sacar("L321", 30_000, "s-carro", "2026-10-14"));
+    const antes = await volcado(c.userId);
+    const rechazado = await deshacer(c, otroMover.id);
+    expect(rechazado.status).toBe(422);
+    const { error } = await rechazado.json();
+    expect(error.code).toBe("domain_rule_violation");
+    expect(error.detail.violations[0]).toMatchObject({ rule: "piso", leafId: "s-carro" });
+    expect(await volcado(c.userId)).toBe(antes);
+    expect([await saldo(c, "s-viaje"), await saldo(c, "s-carro")]).toEqual([170_000, 0]);
   });
 
   it("TC-AGT-127f: la celda del aporte ya fue bajada a mano: cell_already_changed", async () => {

@@ -176,6 +176,8 @@ export default async function globalSetup(): Promise<void> {
     // Feature tony-ledger: la puerta para agentes encendida, para probarla contra el servidor REAL
     // (las cabeceras que añade Next no existen en las pruebas en proceso).
     LEDGER_AGENT_API: "on",
+    // Ningún origen es interno por defecto: se declara el loopback, de donde llaman las pruebas.
+    LEDGER_AGENT_SOURCES: "127.0.0.1",
     // BG-087: el servidor decide «hoy» en LEDGER_TZ (America/Bogota por defecto), pero el navegador y
     // los specs usan el reloj de la máquina. En el CI eso es UTC: de 19:00 a 24:00 del último día de
     // cada mes en Bogotá, el servidor seguía en el mes viejo y el navegador ya en el nuevo, y las

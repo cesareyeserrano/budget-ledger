@@ -128,10 +128,52 @@ test.describe("tony-ledger — la superficie del agente en el servidor real", ()
       expect(estados).toEqual([401, 401, 401, 401, 401, 401, 401]);
       expect(estados).toHaveLength(7);
 
+      // Next no contesta por su cuenta lo que la envoltura debe contestar: ni un 204 con `Allow:`
+      // para OPTIONS, ni un 405 que delate qué métodos existen.
+      for (const [metodo, ruta] of [["OPTIONS", "/tree"], ["OPTIONS", "/movements"], ["POST", "/tree"], ["DELETE", "/movements"], ["PUT", "/summary"]] as const) {
+        const res = await sinToken.fetch(AGENT + ruta, { method: metodo });
+        expect(res.status(), `${metodo} ${ruta}`).toBe(401);
+        expect(res.headers()["allow"], `${metodo} ${ruta}`).toBeUndefined();
+      }
+
       // Y con token, por el mismo camino real —el que añade las cabeceras de Next—, la puerta abre.
       const arbol = await conToken.get(`${AGENT}/tree`);
       expect(arbol.status()).toBe(200);
-      expect(((await arbol.json()) as { nodes: unknown[] }).nodes.length).toBeGreaterThan(0);
+      const nodos = ((await arbol.json()) as { nodes: { id: string; type: string; leaf: boolean }[] }).nodes;
+      expect(nodos.length).toBeGreaterThan(0);
+
+      // Las CINCO operaciones restantes, con token y por el enrutador real. La clave `ref:` viaja
+      // codificada en la URL —espacio, barra y tilde incluidos— y tiene que llegar decodificada.
+      const hoja = nodos.find((n) => n.type === "expense" && n.leaf)!;
+      const ref = "L 300/á#1";
+      const clave = `${AGENT}/movements/${encodeURIComponent(`ref:${ref}`)}`;
+      const alta = await conToken.post(`${AGENT}/movements`, { data: { type: "expense", target: hoja.id, amount: 50_000, date: "2026-09-09", ref } });
+      expect(alta.status(), await alta.text()).toBe(201);
+      const { movement } = (await alta.json()) as { movement: { id: string; period: string } };
+
+      const porRef = await conToken.get(`${AGENT}/movements?ref=${encodeURIComponent(ref)}`);
+      expect(porRef.status()).toBe(200);
+      expect(((await porRef.json()) as { movement: { id: string } }).movement.id).toBe(movement.id);
+
+      const corregido = await conToken.patch(clave, { data: { amount: 45_000 } });
+      expect(corregido.status(), await corregido.text()).toBe(200);
+      expect(((await corregido.json()) as { movement: { id: string; amount: number; ref: string } }).movement).toMatchObject({ id: movement.id, amount: 45_000, ref });
+
+      const resumen = await conToken.get(`${AGENT}/summary?period=${movement.period}`);
+      expect(resumen.status()).toBe(200);
+      const periodo = await conToken.get(`${AGENT}/period?date=2026-09-09`);
+      expect(((await periodo.json()) as { period: string }).period).toBe(movement.period);
+      const lista = await conToken.get(`${AGENT}/movements?period=${movement.period}&node=${hoja.id}`);
+      expect(((await lista.json()) as { movements: { id: string }[] }).movements.map((m) => m.id)).toContain(movement.id);
+
+      const deshecho = await conToken.delete(clave);
+      expect(deshecho.status(), await deshecho.text()).toBe(200);
+      expect((await conToken.get(`${AGENT}/movements?ref=${encodeURIComponent(ref)}`)).status()).toBe(404);
+      // Y por id, igual que por referencia.
+      const otra = await conToken.post(`${AGENT}/movements`, { data: { type: "expense", target: hoja.id, amount: 1_000, date: "2026-09-09", ref: "L301" } });
+      const id = ((await otra.json()) as { movement: { id: string } }).movement.id;
+      expect((await conToken.patch(`${AGENT}/movements/${id}`, { data: { note: "por id" } })).status()).toBe(200);
+      expect((await conToken.delete(`${AGENT}/movements/${id}`)).status()).toBe(200);
     } finally {
       await sinToken.dispose();
       await conToken.dispose();
@@ -182,6 +224,9 @@ test.describe("tony-ledger — lo que el dueño ve (FR-3414, FR-3418)", () => {
     await expect(aMano.getByTestId("agent-tag")).toHaveCount(0);
     await expect(aMano.getByTestId("detail-amount")).toHaveText("80.000");
     await expect(panel.getByTestId("agent-tag")).toHaveCount(1);
+    // La etiqueta no hace la fila más alta que una fila sin ella.
+    const alto = (loc: typeof delAgente) => loc.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    expect(await alto(delAgente)).toBe(await alto(aMano));
   });
 
   test("TC-AGT-141e: un nombre de 60 caracteres se trunca sin desbordar a 375 px", async ({ page }, testInfo) => {
@@ -255,6 +300,8 @@ test.describe("tony-ledger — lo que el dueño ve (FR-3414, FR-3418)", () => {
     for (const tema of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: tema });
       const panel = await abrirDetalle(page, "c-mercado");
+      // El tema pedido es el que está aplicado: si no, las dos vueltas medirían el mismo.
+      expect(await page.evaluate(() => document.documentElement.classList.contains("dark")), `tema ${tema}`).toBe(tema === "dark");
       const etiqueta = panel.getByTestId("agent-tag");
       await expect(etiqueta).toHaveText("Agent-L");
       expect(await contrasteDe(etiqueta), `tema ${tema}`).toBeGreaterThanOrEqual(4.5);
@@ -278,6 +325,13 @@ test.describe("tony-ledger — lo que el dueño ve (FR-3414, FR-3418)", () => {
     await editor.getByTestId("edit-save").click();
     await expect(fila.getByTestId("detail-amount")).toHaveText("45.000");
     await expect(fila.getByTestId("agent-tag")).toHaveText("Agent-L"); // sigue marcado como del agente
+    // Lo PERSISTIDO: la celda en 45.000 y el movimiento con su marca intacta.
+    await expect.poll(async () => {
+      const l = (await (await page.request.get("/api/v1/ledger")).json()) as { state: { actuals: Record<string, Record<string, number>> } };
+      return l.state.actuals["c-mercado"]?.[SEP] ?? 0;
+    }, { timeout: 10_000 }).toBe(45_000);
+    const trasEditar = (await (await page.request.get("/api/v1/ledger")).json()) as { state: { movements: { target: string; amount: number; origin?: { ref: string; agentName: string } }[] } };
+    expect(trasEditar.state.movements.find((m) => m.target === "c-mercado")).toMatchObject({ amount: 45_000, origin: { ref: "L300", agentName: "Agent-L" } });
 
     const guardado = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
     await fila.getByLabel("Borrar movimiento").click();

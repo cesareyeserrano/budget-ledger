@@ -28,9 +28,7 @@ import { withAgent } from "@/server/agent/http";
 import { withApi, json } from "@/server/http";
 import { __resetEnvForTests, parseEnv } from "@/server/env";
 import { __resetRateLimitForTests, allow } from "@/server/rateLimit";
-import {
-  AGENT_READS_PER_WINDOW, AGENT_WINDOW_SECONDS, AGENT_WRITES_PER_WINDOW, readBucket, writeBucket,
-} from "@/server/agent/limits";
+import { AGENT_WINDOW_SECONDS, AGENT_WRITES_PER_WINDOW, writeBucket } from "@/server/agent/limits";
 
 const BASE = "http://localhost:3100";
 const ENV_MINIMO = {
@@ -163,36 +161,65 @@ describe("FR-3406 — los cubos del tope", () => {
       vi.setSystemTime(T0 + i * 1000);
       veredictos.push(allow(writeBucket("agt_1"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS));
     }
-    expect(AGENT_WRITES_PER_WINDOW).toBe(30);
     expect(veredictos.slice(0, 30)).toEqual(Array(30).fill(true));
     expect(veredictos[30]).toBe(false);
   });
 
-  it("TC-AGT-061e: pasada la ventana el token vuelve a ser atendido", () => {
+  it("TC-AGT-061e: pasada la ventana el token vuelve a ser atendido", async () => {
     // @aitri-tc TC-AGT-061e
+    // Por la ENVOLTURA y con el MISMO token: 30 escrituras, la 31 frenada, y a los 61 s entra.
     vi.useFakeTimers();
     vi.setSystemTime(T0);
-    for (let i = 0; i < 30; i++) expect(allow(writeBucket("agt_1"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS)).toBe(true);
+    resolveToken.mockResolvedValue({ tokenId: "agt_1", ownerId: "u-A", name: "Agent-L" });
+    const ruta = withAgent({}, () => json({ ok: true }));
+    const escribir = () => ruta(new Request(`${BASE}/api/agent/v1/movements`, { method: "POST", headers: { authorization: `Bearer ${tokenValido()}` } }));
 
+    for (let i = 0; i < 30; i++) expect((await escribir()).status, `escritura ${i + 1}`).toBe(200);
+    const frenada = await escribir();
+    expect(frenada.status).toBe(429);
+    expect(frenada.headers.get("retry-after")).toBe("60");
+    expect((await frenada.json()).error.code).toBe("rate_limited");
+
+    // A los 59 s las 31 marcas siguen dentro de la ventana: frenado. A los 61 s ya caducaron y el
+    // MISMO token vuelve a entrar (el intento de los 59 s cuenta, pero es uno solo).
     vi.setSystemTime(T0 + 59_000);
-    expect(allow(writeBucket("agt_1"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS)).toBe(false);
-    // Un token que NO insistió durante el bloqueo: a los 61 s las 30 marcas ya caducaron.
-    __resetRateLimitForTests();
-    vi.setSystemTime(T0);
-    for (let i = 0; i < 30; i++) allow(writeBucket("agt_2"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS);
+    expect((await escribir()).status).toBe(429);
     vi.setSystemTime(T0 + 61_000);
-    expect(allow(writeBucket("agt_2"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS)).toBe(true);
+    expect((await escribir()).status).toBe(200);
+
+    // Lo que NO funciona es insistir: los intentos rechazados también cuentan, así que un agente
+    // que martillea a más de 30 por minuto no sale nunca del bloqueo.
+    vi.setSystemTime(T0 + 200_000);
+    for (let i = 0; i < 31; i++) await escribir();
+    for (let s = 1; s <= 90; s++) {
+      vi.setSystemTime(T0 + 200_000 + s * 1_000);
+      expect((await escribir()).status, `insistiendo, segundo ${s}`).toBe(429);
+    }
+    // Y sale en cuanto se calla un minuto.
+    vi.setSystemTime(T0 + 200_000 + 90_000 + 61_000);
+    expect((await escribir()).status).toBe(200);
   });
 
-  it("TC-AGT-065e: lecturas y escrituras tienen cubos distintos: 120 lecturas, la 121 no", () => {
+  it("TC-AGT-065e: lecturas y escrituras tienen cubos distintos: 120 lecturas, la 121 no", async () => {
     // @aitri-tc TC-AGT-065e
+    // Por la ENVOLTURA: es ella la que decide qué cubo consume cada método.
     vi.useFakeTimers();
     vi.setSystemTime(T0);
-    const lecturas = Array.from({ length: 121 }, () => allow(readBucket("agt_1"), AGENT_READS_PER_WINDOW, AGENT_WINDOW_SECONDS));
-    expect(AGENT_READS_PER_WINDOW).toBe(120);
-    expect(lecturas.slice(0, 120)).toEqual(Array(120).fill(true));
-    expect(lecturas[120]).toBe(false);
-    expect(allow(writeBucket("agt_1"), AGENT_WRITES_PER_WINDOW, AGENT_WINDOW_SECONDS)).toBe(true);
-    expect(readBucket("agt_1")).not.toBe(writeBucket("agt_1"));
+    resolveToken.mockResolvedValue({ tokenId: "agt_1", ownerId: "u-A", name: "Agent-L" });
+    const ruta = withAgent({}, () => json({ ok: true }));
+    const pedir = (method: string) => ruta(new Request(`${BASE}/api/agent/v1/tree`, { method, headers: { authorization: `Bearer ${tokenValido()}` } }));
+
+    for (let i = 0; i < 120; i++) expect((await pedir("GET")).status, `lectura ${i + 1}`).toBe(200);
+    const lectura121 = await pedir("GET");
+    expect(lectura121.status).toBe(429);
+    expect(lectura121.headers.get("retry-after")).toBe("60");
+    // HEAD es una lectura: va al mismo cubo, ya agotado, y NO gasta el de escrituras.
+    expect((await pedir("HEAD")).status).toBe(429);
+    // Las escrituras tienen el suyo, intacto: caben sus 30 y la 31 no.
+    for (let i = 0; i < 30; i++) expect((await pedir("POST")).status, `escritura ${i + 1}`).toBe(200);
+    expect((await pedir("DELETE")).status).toBe(429);
+    // Otro token no hereda nada de esto.
+    resolveToken.mockResolvedValue({ tokenId: "agt_2", ownerId: "u-A", name: "otro" });
+    expect((await pedir("GET")).status).toBe(200);
   });
 });

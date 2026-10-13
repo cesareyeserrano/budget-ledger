@@ -24,7 +24,9 @@ export function AgentTag({ movement, className = "" }: { movement: Movement; cla
       title={nombre}
       aria-label={`Registrado por ${nombre}`}
       // `inline-block`: el recorte con elipsis y el ancho máximo no aplican a un elemento en línea.
-      className={`inline-block flex-none max-w-[96px] truncate rounded-(--radius-xs) border px-1 leading-snug ${className}`}
+      // `leading-tight`: con su borde, la etiqueta no pasa de la altura de la línea de texto de la
+      // fila, así que una fila del agente mide lo mismo que una manual (TC-AGT-140h).
+      className={`inline-block flex-none max-w-[96px] truncate rounded-(--radius-xs) border px-1 leading-tight ${className}`}
       style={{ color: "var(--fg-secondary)", borderColor: "var(--border-strong)" }}
     >
       {nombre}
