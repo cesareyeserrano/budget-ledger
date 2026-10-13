@@ -178,3 +178,21 @@ export async function volcado(ownerId: string): Promise<string> {
   }
   return partes.join("\n");
 }
+
+/**
+ * Marca un movimiento ya guardado como registrado por un agente. Escribe las tres columnas de
+ * origen directamente: sirve para preparar escenarios de LECTURA sin depender de la escritura.
+ */
+export async function marcarComoAgente(
+  ownerId: string, movementId: string, ref: string, tokenId: string, agentName = "Agent-L"
+): Promise<void> {
+  await testDb().execute(
+    sql`UPDATE "movement" SET origin_ref = ${ref}, agent_token_id = ${tokenId}, agent_name = ${agentName}
+        WHERE owner_id = ${ownerId} AND id = ${movementId}`
+  );
+}
+
+/** Cabecera de pruebas que fija el «hoy» del servidor (solo con LEDGER_TEST_OVERRIDES=1). */
+export function hoy(fecha: string): Record<string, string> {
+  return { "x-ledger-today": fecha };
+}

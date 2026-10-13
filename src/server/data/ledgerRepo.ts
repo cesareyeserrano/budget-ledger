@@ -178,6 +178,11 @@ function rowsToState(
     // FR-2504: solo el ajuste se marca. 'manual' es la ausencia del campo, así que un ledger previo
     // se lee exactamente igual que antes de la migración 0009.
     ...(r.kind === "adjustment" ? { kind: "adjustment" as const } : {}),
+    // FR-3413: la marca de un movimiento registrado por un agente. Las tres columnas van juntas
+    // (CHECK movement_origin_ck), así que con la referencia basta para saber que están.
+    ...(r.originRef != null && r.agentTokenId != null && r.agentName != null
+      ? { origin: { ref: r.originRef, agentId: r.agentTokenId, agentName: r.agentName } }
+      : {}),
   }));
 
   // FR-1012: observaciones manuales por celda.
@@ -609,6 +614,11 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
     // FR-2504: el snapshot se BORRA y se reinserta en cada guardado, así que sin esta línea el
     // `kind` se perdería en el primer PUT y un ajuste negativo chocaría con el CHECK de la 0009.
     kind: m.kind ?? "manual",
+    // FR-3413: el snapshot se borra y se reinserta, así que la marca del agente viaja con el
+    // movimiento. Quien llama desde el PUT ya la repuso desde lo guardado (`conservarOrigen`).
+    originRef: m.origin?.ref ?? null,
+    agentTokenId: m.origin?.agentId ?? null,
+    agentName: m.origin?.agentName ?? null,
   }));
 
   for (let i = 0; i < nodeValues.length; i += INSERT_CHUNK) {
@@ -708,6 +718,38 @@ export function periodMismatches(state: LedgerState, calBase: Calendar, prev?: L
   return ids;
 }
 
+/**
+ * La marca de origen de un movimiento la pone y la conserva SOLO el servidor (feature tony-ledger,
+ * FR-3413, ADR-03). El snapshot del navegador se borra y se reinserta entero, así que lo que el
+ * cuerpo diga de `origin` no cuenta: a cada movimiento entrante se le pone el `origin` del
+ * movimiento GUARDADO con su mismo id, o ninguno si el guardado no lo tiene.
+ *
+ * Con eso un guardado no puede inventar la marca en un movimiento manual, ni cambiarla, ni quitarla
+ * de uno del agente — y una pestaña con código anterior, que reenvía los movimientos sin `origin`,
+ * tampoco la pierde. Lo único que el navegador puede hacer con un movimiento del agente es editarlo
+ * o borrarlo entero, como cualquier otro.
+ *
+ * @param prev Estado guardado (lo que el servidor leyó).
+ * @param next Estado entrante (lo que mandó el cliente).
+ * @returns El entrante con el origen autoritativo. El mismo objeto si no hay nada que reponer.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3413, US-ID: US-3413, AC-ID: AC-3413b, TC-ID: TC-AGT-131h, TC-AGT-133f, TC-AGT-135e
+ */
+export function conservarOrigen(prev: LedgerState, next: LedgerState): LedgerState {
+  const guardados = new Map(prev.movements.filter((m) => m.origin).map((m) => [m.id, m.origin!]));
+  if (guardados.size === 0 && !next.movements.some((m) => m.origin)) return next;
+  return {
+    ...next,
+    movements: next.movements.map((m) => {
+      const { origin: _delCliente, ...resto } = m;
+      void _delCliente;
+      const origin = guardados.get(m.id);
+      return origin ? { ...resto, origin } : resto;
+    }),
+  };
+}
+
 /** Devuelve `next` con el plano de Presupuestado repuesto en los comentarios que lo tienen en `prev`. */
 function conservarPlanoDeComentarios(prev: LedgerState, next: LedgerState): LedgerState {
   const dePresupuesto = new Set<string>();
@@ -787,6 +829,9 @@ export async function saveLedger(
     // comentario de celda, así que el que llega sin plano y está GUARDADO como de Presupuestado lo sigue
     // siendo. Los ids sobreviven a mover un nodo y a cambiar de periodo.
     if (prev) state = conservarPlanoDeComentarios(prev, state);
+    // FR-3413: lo mismo con la marca de los movimientos del agente. Sin estado previo (primer
+    // guardado) no hay marca que conservar y la que traiga el cuerpo se descarta.
+    state = conservarOrigen(prev ?? { ...state, movements: [] }, state);
     const cal = calendarOf(state);
     const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
     const mismatch = periodMismatches(state, cal, prev);

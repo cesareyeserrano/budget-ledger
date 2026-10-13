@@ -31,12 +31,23 @@ Notas de ejecución
                TC-AGT-248e. (4) El cubo de tokens inválidos es siempre global: una petición con
                X-Forwarded-For se rechaza antes de mirarse el token (ADR-06), así que no hay IP fiable.
 
-## EP-02 — Lecturas   [status: pending]
+## EP-02 — Lecturas   [status: done]
   Delivers:    US-3407, US-3415, US-3416, US-3417
   FRs:         FR-3407, FR-3415, FR-3416, FR-3417 (+ NFR-3403, NFR-3415)
   Makes pass:  TC-AGT-070h, TC-AGT-071e, TC-AGT-072f, TC-AGT-073f, TC-AGT-074e, TC-AGT-150h, TC-AGT-151h, TC-AGT-152e, TC-AGT-153f, TC-AGT-154e, TC-AGT-155f, TC-AGT-156e, TC-AGT-160h, TC-AGT-161h, TC-AGT-162f, TC-AGT-163e, TC-AGT-164e, TC-AGT-165f, TC-AGT-170h, TC-AGT-171e, TC-AGT-172f, TC-AGT-173e, TC-AGT-174h, TC-AGT-210h, TC-AGT-211e, TC-AGT-262e, TC-AGT-268f
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    No escriben: validan la puerta de punta a punta con riesgo cero y dan al agente el árbol y el periodo que las escrituras necesitan.
+  Evidencia (2026-10-13): 27/27 en verde — tests/integration/backend/agente-lecturas.test.ts 19/19,
+               tests/integration/backend/agente-consultas.test.ts 2/2 y tests/unit/agente-lecturas.test.ts
+               6/6. Suite completa (`npx vitest run`, Node 22): 194 archivos, 1904 pruebas, 0 fallos,
+               exit 0. typecheck y lint limpios.
+  Notas: (1) La marca de origen ya viaja en el tipo `Movement` y `saveLedger` la repone desde lo
+               guardado (`conservarOrigen`): se adelantó de EP-04 porque las lecturas devuelven
+               `ref` y `agent`, y dejar el snapshot sin esa defensa entre épicas habría sido un
+               hueco. Sus pruebas siguen en EP-04. (2) TC-AGT-072f comprueba que la ruta del árbol
+               solo exporta GET (en proceso no hay enrutador de Next que devuelva el 405).
+               (3) Los casos de «trabajo hecho» (262e, 268f) cuentan sentencias SQL con un cliente
+               de Postgres instrumentado, en archivo propio; no miden tiempo de reloj.
 
 ## EP-03 — Escrituras   [status: pending]
   Delivers:    US-3408, US-3409, US-3410, US-3411, US-3412, US-3418
