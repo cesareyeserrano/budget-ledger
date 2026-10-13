@@ -94,12 +94,25 @@ no solo en proceso — se aplica en EP-03 a TC-AGT-034f y TC-AGT-247h.
                Next existen. Los dos arneses e2e arrancan con LEDGER_AGENT_API=on. (5) El «reinicio»
                de TC-AGT-095h cierra el cliente de base de la app y recarga todos sus módulos.
 
-## EP-04 — Marca y etiqueta   [status: pending]
+## EP-04 — Marca y etiqueta   [status: done]
   Delivers:    US-3413, US-3414
   FRs:         FR-3413, FR-3414 (+ NFR-3403, NFR-3406; y el caso de pantalla de FR-3418)
   Makes pass:  TC-AGT-130h, TC-AGT-131h, TC-AGT-132e, TC-AGT-133f, TC-AGT-134e, TC-AGT-135e, TC-AGT-136f, TC-AGT-137h, TC-AGT-140h, TC-AGT-141e, TC-AGT-142f, TC-AGT-143e, TC-AGT-144h, TC-AGT-145e, TC-AGT-180h, TC-AGT-212f, TC-AGT-225h, TC-AGT-226e, TC-AGT-227f
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Necesita movimientos de agente ya existentes (EP-03) para probar que la marca sobrevive al guardado de la app y se ve en el Detalle.
+  Evidencia (2026-10-13): 19/19 en verde — tests/integration/backend/agente-marca.test.ts 11/11,
+               tests/integration/tony-ledger-etiqueta.test.ts 1/1 (jsdom, pasando por la validación
+               del cliente) y tests/e2e/tony-ledger.spec.ts 7/7 de esta épica (9/9 con las dos de
+               EP-03) contra el build de producción. Suite completa (`npx vitest run`): 199 archivos,
+               1992 pruebas, 0 fallos, exit 0. typecheck, lint y design-tokens limpios.
+  Notas: (1) La etiqueta es un componente, `AgentTag`, usado en el Detalle de la celda
+               (escritorio) y en la pantalla de la hoja (teléfono): a 375 px no existe el Detalle de
+               escritorio, así que el caso de 375 px (141e) se prueba donde el dueño ve la lista en
+               el teléfono. (2) `apiMovementSchema` acepta `origin` para que el navegador no lo
+               pierda al cargar; en el PUT el servidor lo ignora y usa lo guardado. (3) La fila del
+               teléfono ya tenía `scrollWidth` 8 px mayor que su ancho por el margen negativo del
+               lápiz (anterior a esta feature): 141e compara la fila del agente con una manual en
+               vez de exigir scrollWidth ≤ clientWidth.
 
 ## EP-05 — Contrato y despliegue   [status: pending]
   Delivers:    US-3419

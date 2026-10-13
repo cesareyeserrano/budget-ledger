@@ -20,6 +20,7 @@ import { money, textoBorradoNegativo } from "./format";
 import { CellNoteInput } from "./CellNoteInput";
 import { AddMovementLine } from "./AddMovementLine";
 import { MovementEditor } from "./MovementEditor";
+import { AgentTag } from "./AgentTag";
 
 /** Ancho del panel y alto máximo de la lista (UX spec § Component Inventory). */
 const PANEL_MAX_W = 440; // antes 320: cortaba las notas (corregido 2026-09-21)
@@ -138,6 +139,7 @@ function DetailRow({
       >
         {m.note || "Sin nota"}
       </span>
+      <AgentTag movement={m} />
       <span
         data-testid="detail-amount"
         className="tabular flex-none"
