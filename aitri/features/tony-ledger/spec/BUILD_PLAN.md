@@ -49,6 +49,28 @@ Notas de ejecución
                (3) Los casos de «trabajo hecho» (262e, 268f) cuentan sentencias SQL con un cliente
                de Postgres instrumentado, en archivo propio; no miden tiempo de reloj.
 
+## Corrección tras la primera prueba en dev (2026-10-13) — ADR-06 se implementa por VALOR, no por presencia
+
+Hallazgo: al probar contra el servidor real (`next dev`, :3100) toda la superficie respondía 404, con
+token válido incluido. Causa: el servidor de Next añade a TODA petición `x-forwarded-for` (la
+dirección del socket, si el cliente no la trajo) y `x-forwarded-host` (= `Host`). La regla escrita en
+el diseño —«404 si la petición trae cabeceras de proxy»— rechaza por tanto todas las peticiones en un
+servidor real. Las 69 pruebas estaban verdes porque llaman a las rutas en proceso, sin pasar por Next.
+
+Corrección (de implementación; la intención de ADR-06 y NFR-3411 no cambia): `src/server/agent/origin.ts`
+decide por el VALOR. Se atiende solo si `x-forwarded-for` es UNA dirección interna (el loopback siempre;
+más los bloques de `LEDGER_AGENT_SOURCES`), `x-forwarded-host` coincide con `Host`, y no hay `Forwarded`
+ni cabeceras `Tailscale-*`. A través de `tailscale serve` o Nginx el proxy escribe la dirección del
+cliente real, que no es interna → 404. Variable nueva: `LEDGER_AGENT_SOURCES` (IPv4 o CIDR, validada
+al arrancar). TC-AGT-253e cubre ahora ocho formas de llegar por un proxy, las tres del loopback y la
+red declarada. El helper de pruebas entrega las peticiones con las cabeceras que pone Next.
+
+Pendiente derivado: (1) el texto de ADR-06 y la tabla de rechazos de 02_SYSTEM_DESIGN.md describen la
+regla vieja — se declara en 04_BUILD_REPORT.json y se corrige el documento si el usuario decide
+re-aprobar la fase 2 (re-aprobarla invalida en cascada las fases 3 y 4). (2) Lección: los casos que
+dependen del enrutador o de las cabeceras reales van contra el servidor levantado (tests/e2e-backend),
+no solo en proceso — se aplica en EP-03 a TC-AGT-034f y TC-AGT-247h.
+
 ## EP-03 — Escrituras   [status: pending]
   Delivers:    US-3408, US-3409, US-3410, US-3411, US-3412, US-3418
   FRs:         FR-3408, FR-3409, FR-3410, FR-3411, FR-3412, FR-3418 (+ NFR-3404, NFR-3405, NFR-3408, NFR-3409, NFR-3411, NFR-3415)

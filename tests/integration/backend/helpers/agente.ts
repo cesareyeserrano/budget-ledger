@@ -113,9 +113,17 @@ export interface AgentReqInit {
   headers?: Record<string, string>;
 }
 
+/**
+ * Lo que el servidor de Next añade a TODA petición antes de entregarla a la ruta: la dirección de
+ * quien se conectó y el `Host`. Las pruebas llaman a la ruta en proceso, sin Next, así que las
+ * ponen ellas — una petición sin estas cabeceras no existe en un servidor real, y probar solo eso
+ * fue lo que dejó pasar el primer fallo de ADR-06 (2026-10-13).
+ */
+export const DE_NEXT: Record<string, string> = { host: "localhost:3100", "x-forwarded-for": "127.0.0.1", "x-forwarded-host": "localhost:3100" };
+
 /** Construye una petición a la superficie del agente. Sin cookie ni Origin salvo que se pidan. */
 export function agentReq(path: string, init: AgentReqInit = {}): Request {
-  const headers: Record<string, string> = { ...(init.headers ?? {}) };
+  const headers: Record<string, string> = { ...DE_NEXT, ...(init.headers ?? {}) };
   if (init.token) headers.authorization = `Bearer ${init.token}`;
   if (init.cookie) headers.cookie = init.cookie;
   const body = init.rawBody ?? (init.body !== undefined ? JSON.stringify(init.body) : undefined);

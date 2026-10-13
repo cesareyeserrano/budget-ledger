@@ -3,11 +3,11 @@
  * Purpose: withAgent() — envoltura de TODA ruta bajo /api/agent/v1 (ADR-01). Es la única puerta por
  *   la que entra un agente y el único sitio del servidor que lee la cabecera `Authorization`. Orden
  *   fijo, y cada paso corta antes de llegar al siguiente:
- *     interruptor (FR-3405) → nada que venga por un proxy (ADR-06) → token (FR-3403) →
+ *     interruptor (FR-3405) → solo red interna (ADR-06, ./origin) → token (FR-3403) →
  *     tope (FR-3406) → tamaño y forma del cuerpo (NFR-3411) → handler → log (NFR-3412).
  *   La cuenta sale SOLO del token: ningún handler lee un `ownerId` de la petición.
  *   `withApi` (server/http.ts) no cambia y no conoce nada de esto (FR-3404).
- * Dependencies: zod, ../http, ../env, ../rateLimit, ./tokens, ./limits
+ * Dependencies: zod, ../http, ../env, ../rateLimit, ./tokens, ./origin, ./limits
  */
 import "server-only";
 import type { ZodType } from "zod";
@@ -15,6 +15,7 @@ import { HTTP, apiError, leerJson } from "../http";
 import { env } from "../env";
 import { allow } from "../rateLimit";
 import { parseToken, resolveToken } from "./tokens";
+import { isInternalRequest } from "./origin";
 import {
   AGENT_BAD_BUCKET_GLOBAL,
   AGENT_BAD_TOKENS_PER_WINDOW,
@@ -26,12 +27,6 @@ import {
   readBucket,
   writeBucket,
 } from "./limits";
-
-/**
- * Cabeceras que solo añade un proxy delante de la app (`tailscale serve`, Nginx). Quien pasa por el
- * proxy no puede quitarlas; el agente, que llega por la red interna, no las trae (ADR-06).
- */
-export const PROXY_HEADERS = ["x-forwarded-for", "x-forwarded-host", "forwarded", "tailscale-user-login"] as const;
 
 /** Lo que recibe un handler de la superficie del agente. */
 export interface AgentContext<T> {
@@ -92,10 +87,11 @@ export function withAgent<T = unknown>(opts: AgentOptions<T>, handler: AgentHand
 
     try {
       // 1) Interruptor: apagada, la superficie no existe — ni se mira el token.
-      if (!env().agentEnabled) return finish(apiError("not_found", "No encontrado", HTTP.NOT_FOUND));
+      const e = env();
+      if (!e.agentEnabled) return finish(apiError("not_found", "No encontrado", HTTP.NOT_FOUND));
 
-      // 2) Nada que llegue por un proxy: la superficie es de la red interna.
-      if (PROXY_HEADERS.some((h) => req.headers.has(h))) {
+      // 2) Nada que llegue a través de un proxy: la superficie es de la red interna (ADR-06).
+      if (!isInternalRequest(req, e.agentSources)) {
         return finish(apiError("not_found", "No encontrado", HTTP.NOT_FOUND));
       }
 

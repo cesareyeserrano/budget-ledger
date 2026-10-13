@@ -512,21 +512,40 @@ describe("NFR-3411 — la superficie no se alcanza por un proxy", () => {
   it("TC-AGT-253e: lo que llega por un proxy no se atiende ni con token válido", async () => {
     // @aitri-tc TC-AGT-253e
     const c = await cuentaConToken();
-    const cabeceras: Record<string, string>[] = [
-      { "x-forwarded-for": "100.64.0.5" },
-      { "x-forwarded-host": "ultron.example" },
+    // Cada caso es lo que un proxy deja en la petición; la dirección ya no es la de la máquina.
+    const porProxy: Record<string, string>[] = [
+      { "x-forwarded-for": "100.64.0.5" },                    // tailscale serve: IP del cliente en la tailnet
+      { "x-forwarded-for": "203.0.113.9" },                   // cliente de internet
+      { "x-forwarded-for": "203.0.113.9, 127.0.0.1" },        // proxy que ANEXA: dos saltos
+      { "x-forwarded-for": "172.30.0.5" },                    // red privada NO declarada como interna
+      { "x-forwarded-host": "ultron.example" },               // el proxy reescribió el host
       { forwarded: "for=100.64.0.5" },
       { "tailscale-user-login": "alguien@example.com" },
+      { "Tailscale-User-Name": "Alguien" },
     ];
-    for (const h of cabeceras) {
+    for (const h of porProxy) {
       const res = await treeGET(agentReq("/tree", { token: c.token, headers: h }));
       expect(res.status, JSON.stringify(h)).toBe(404);
     }
     expect(await ultimoUso(c.tokenId)).toBeNull(); // el token ni se llegó a mirar
 
-    const directa = await treeGET(agentReq("/tree", { token: c.token }));
-    expect(directa.status).toBe(200);
+    // La conexión directa —como la entrega Next: dirección del socket y host iguales— sí.
+    for (const h of [{ "x-forwarded-for": "127.0.0.1" }, { "x-forwarded-for": "::1" }, { "x-forwarded-for": "::ffff:127.0.0.1" }]) {
+      expect((await treeGET(agentReq("/tree", { token: c.token, headers: h }))).status, JSON.stringify(h)).toBe(200);
+    }
     expect(await ultimoUso(c.tokenId)).not.toBeNull();
+
+    // Y una red interna solo cuenta si el despliegue la declara.
+    process.env.LEDGER_AGENT_SOURCES = "172.30.0.0/24";
+    superficie("on");
+    try {
+      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "172.30.0.5" } }))).status).toBe(200);
+      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "172.30.1.5" } }))).status).toBe(404);
+      expect((await treeGET(agentReq("/tree", { token: c.token, headers: { "x-forwarded-for": "100.64.0.5" } }))).status).toBe(404);
+    } finally {
+      delete process.env.LEDGER_AGENT_SOURCES;
+      superficie("on");
+    }
   });
 });
 

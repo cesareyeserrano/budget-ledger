@@ -49,6 +49,7 @@ services:
       LEDGER_TRUST_PROXY: ${LEDGER_TRUST_PROXY:-false}
       # Puerta para agentes (/api/agent/v1). Apagada salvo que valga exactamente `on`.
       LEDGER_AGENT_API: ${LEDGER_AGENT_API:-}
+      LEDGER_AGENT_SOURCES: ${LEDGER_AGENT_SOURCES:-}
     ports:
       # Solo loopback: la única puerta desde fuera es el frente TLS del host (hoy `tailscale serve`).
       - "127.0.0.1:3000:3000"
