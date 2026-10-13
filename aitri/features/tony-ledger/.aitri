@@ -1,5 +1,5 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     2,
@@ -10,12 +10,13 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "tony-ledger",
   "createdAt": "2026-10-06T20:28:15.752Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-13T22:32:08.451Z",
+  "updatedAt": "2026-10-13T22:44:42.804Z",
   "driftPhases": [],
   "events": [
     {
@@ -98,6 +99,32 @@
       "at": "2026-10-13T22:32:08.442Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-10-13T22:43:16.449Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 172,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-13T22:43:29.895Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 172,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-13T22:43:37.324Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-13T22:44:42.793Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
@@ -105,7 +132,8 @@
     "1": "6b96f910cf66be9122668a222b7627b22a1a7e7e56da15051bfee7a4045ac144",
     "2": "5ba85445668a75ada605dcc53f89a66209ddaa0103de79ebd74b242c1e897c69",
     "3": "e57e157965b88553263dd732832917c57170d7ed94466c095be062e7e90db316",
-    "4": "f96ef6831fa53c17aa779be8fbd243fb6d010ce5181336556de9bdb992c57d48"
+    "4": "f96ef6831fa53c17aa779be8fbd243fb6d010ce5181336556de9bdb992c57d48",
+    "5": "110af67273d596a9dfe9831b264ce2e4090d6c89831344ab24b90c3a5fd6f983"
   },
   "frSnapshots": {
     "2": [
@@ -236,5 +264,27 @@
       "FR-3418": "aed5ef03e0f97148",
       "FR-3419": "176a01a2a1a042bd"
     }
+  },
+  "verifyResultsHash": "63b6e640ded59669309d3d47bb5b19f4e49317b2180b476d8e1a1432704389e1",
+  "verifyRanAt": "2026-10-13T22:43:16.428Z",
+  "verifyRanRef": "fab0c7137e2e36fb499b4c47e1e14ffb07bc3521",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 172,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-10-13T22:43:16.428Z"
+  },
+  "verifyPassed": true,
+  "verifySummary": {
+    "total": 172,
+    "passed": 172,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
   }
 }

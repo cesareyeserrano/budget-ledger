@@ -1,0 +1,1638 @@
+{
+  "executed_at": "2026-10-13T22:43:16.425Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-AGT-010h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3401 — crear un token por comando > TC-AGT-010h: se imprime una vez y solo se guarda su hash 147ms"
+    },
+    {
+      "tc_id": "TC-AGT-011e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3401 — crear un token por comando > TC-AGT-011e: dos tokens activos de la misma cuenta funcionan por separado 153ms"
+    },
+    {
+      "tc_id": "TC-AGT-012f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3401 — crear un token por comando > TC-AGT-012f: un correo inexistente no crea nada ni delata otras cuentas 100ms"
+    },
+    {
+      "tc_id": "TC-AGT-013f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3401 — crear un token por comando > TC-AGT-013f: nombre vacío o de 61 caracteres se rechaza; 60 se acepta 136ms"
+    },
+    {
+      "tc_id": "TC-AGT-014h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3401 — el token > TC-AGT-014h: formato fijo, 256 bits y sin repetidos 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-015f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3401 — el token > TC-AGT-015f: parseToken rechaza todo lo que no tiene el formato exacto 0ms"
+    },
+    {
+      "tc_id": "TC-AGT-020h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3402 — listar y revocar > TC-AGT-020h: listar muestra nombre, id, creado, último uso y estado, sin secretos 96ms"
+    },
+    {
+      "tc_id": "TC-AGT-021h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > Acceso — los casos que necesitan poder escribir > TC-AGT-021h: revocar corta el acceso en la siguiente petición, sin reiniciar 178ms"
+    },
+    {
+      "tc_id": "TC-AGT-022f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3402 — listar y revocar > TC-AGT-022f: revocar un id inexistente o ya revocado falla sin cambiar nada 125ms"
+    },
+    {
+      "tc_id": "TC-AGT-023e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3402 — listar y revocar > TC-AGT-023e: revocar un token no afecta a otro token ni a la sesión 100ms"
+    },
+    {
+      "tc_id": "TC-AGT-024e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3402 — listar y revocar > TC-AGT-024e: el último uso se escribe como mucho una vez por minuto 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-025f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3402 — listar y revocar > TC-AGT-025f: resolveToken devuelve null para un token revocado 38ms"
+    },
+    {
+      "tc_id": "TC-AGT-030h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3403 — autenticación por token y aislamiento > TC-AGT-030h: token válido, sin cookie ni Origin, lee el árbol de su cuenta 64ms"
+    },
+    {
+      "tc_id": "TC-AGT-031f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3403 — autenticación por token y aislamiento > TC-AGT-031f: sin token, mal formado, inexistente o revocado: el mismo 401 85ms"
+    },
+    {
+      "tc_id": "TC-AGT-032f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > Acceso — los casos que necesitan poder escribir > TC-AGT-032f: el token de A no alcanza un movimiento de B por su id 98ms"
+    },
+    {
+      "tc_id": "TC-AGT-033e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3403 — autenticación por token y aislamiento > TC-AGT-033e: una cookie de sesión sin token no abre la superficie del agente 41ms"
+    },
+    {
+      "tc_id": "TC-AGT-034f",
+      "status": "pass",
+      "notes": "✓  665 [chromium] › tests/e2e/tony-ledger.spec.ts:183:7 › tony-ledger — la superficie del agente en el servidor real › TC-AGT-034f: fuera de las siete operaciones no hay nada (106ms)"
+    },
+    {
+      "tc_id": "TC-AGT-035h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3403 — withAgent toma la identidad del token > TC-AGT-035h: entrega al handler la cuenta del token y nada de la petición 27ms"
+    },
+    {
+      "tc_id": "TC-AGT-036f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3403 — la cuenta no viaja en el cuerpo > TC-AGT-036f: un ownerId en el cuerpo se rechaza por esquema estricto 5ms"
+    },
+    {
+      "tc_id": "TC-AGT-040f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3404 — la API del navegador no acepta el token > TC-AGT-040f: con token y sin sesión, las lecturas de /api/v1 responden 401 41ms"
+    },
+    {
+      "tc_id": "TC-AGT-041f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3404 — la API del navegador no acepta el token > TC-AGT-041f: con token y sin sesión, ninguna escritura de /api/v1 se aplica 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-042h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3404 — la API del navegador no acepta el token > TC-AGT-042h: con sesión, /api/v1 responde como siempre 59ms"
+    },
+    {
+      "tc_id": "TC-AGT-043e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3404 — la API del navegador no acepta el token > TC-AGT-043e: sesión más token en la cabecera responde igual que solo con sesión 50ms"
+    },
+    {
+      "tc_id": "TC-AGT-044f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3404 / NFR-3401 — withApi no conoce el token > TC-AGT-044f: withApi no convierte un token en identidad 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-050f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > Acceso — los casos que necesitan poder escribir > TC-AGT-050f: apagada, la superficie no existe ni para un token válido 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-051h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3405 — interruptor de la superficie > TC-AGT-051h: encendida, la petición con token se atiende 43ms"
+    },
+    {
+      "tc_id": "TC-AGT-052e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3405 — interruptor de la superficie > TC-AGT-052e: apagada, la app y el healthcheck siguen igual 43ms"
+    },
+    {
+      "tc_id": "TC-AGT-053f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3405 — el interruptor > TC-AGT-053f: solo el valor exacto «on» enciende 4ms"
+    },
+    {
+      "tc_id": "TC-AGT-060h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3406 — los cubos del tope > TC-AGT-060h: 30 escrituras caben en un minuto y la 31 no 4ms"
+    },
+    {
+      "tc_id": "TC-AGT-061e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3406 — los cubos del tope > TC-AGT-061e: pasada la ventana el token vuelve a ser atendido 11ms"
+    },
+    {
+      "tc_id": "TC-AGT-062f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3406 — el tope por token > TC-AGT-062f: la escritura 31 recibe 429 y no cambia el libro 173ms"
+    },
+    {
+      "tc_id": "TC-AGT-063f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > FR-3406 — tope de intentos con token inválido > TC-AGT-063f: el intento 21 recibe 429 y el token bueno sigue entrando 51ms"
+    },
+    {
+      "tc_id": "TC-AGT-064e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3406 — el tope por token > TC-AGT-064e: el tope de un token no consume el de otro 150ms"
+    },
+    {
+      "tc_id": "TC-AGT-065e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3406 — los cubos del tope > TC-AGT-065e: lecturas y escrituras tienen cubos distintos: 120 lecturas, la 121 no 5ms"
+    },
+    {
+      "tc_id": "TC-AGT-070h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3407 — leer el árbol > TC-AGT-070h: trae todos los nodos con sus campos y la marca de hoja 122ms"
+    },
+    {
+      "tc_id": "TC-AGT-071e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3407 — leer el árbol > TC-AGT-071e: un renombrado hecho en la app se ve en la siguiente lectura 70ms"
+    },
+    {
+      "tc_id": "TC-AGT-072f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3407 — leer el árbol > TC-AGT-072f: el agente no puede escribir sobre el árbol 57ms"
+    },
+    {
+      "tc_id": "TC-AGT-073f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3407 — leer el árbol > TC-AGT-073f: una cuenta que no ha guardado su libro recibe 404, no 500 38ms"
+    },
+    {
+      "tc_id": "TC-AGT-074e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > FR-3407 — la marca de hoja > TC-AGT-074e: la marca de hoja coincide con la regla del dominio 0ms"
+    },
+    {
+      "tc_id": "TC-AGT-080h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-080h: un gasto de 50.000 sube el Ejecutado de la hoja y de sus ancestros 126ms"
+    },
+    {
+      "tc_id": "TC-AGT-081h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-081h: un ingreso por el agente deja el libro igual que el mismo ingreso por la app 91ms"
+    },
+    {
+      "tc_id": "TC-AGT-082e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-082e: en una cuenta con ciclos el periodo es el que da el calendario a la fecha 66ms"
+    },
+    {
+      "tc_id": "TC-AGT-083f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-083f: destino inexistente, no hoja o de otro tipo: invalid_target y nada cambia 65ms"
+    },
+    {
+      "tc_id": "TC-AGT-084f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-084f: fecha en un periodo cerrado: closed_period_violation 64ms"
+    },
+    {
+      "tc_id": "TC-AGT-085f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3408 — el cuerpo de un registro > TC-AGT-085f: límites del cuerpo: monto, fecha y nota 9ms"
+    },
+    {
+      "tc_id": "TC-AGT-086e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-086e: con un libro de tamaño real, un registro toca una fila y una celda 181ms"
+    },
+    {
+      "tc_id": "TC-AGT-087e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3408 — el cuerpo de un registro > TC-AGT-087e: el destino se traduce a categoría y subcategoría como en la app 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-088f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3408 — registrar un gasto o un ingreso > TC-AGT-088f: una fecha fuera del calendario responde invalid_date 48ms"
+    },
+    {
+      "tc_id": "TC-AGT-090h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-090h: el mismo registro dos veces deja un solo movimiento 51ms"
+    },
+    {
+      "tc_id": "TC-AGT-091e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-091e: dos registros simultáneos con la misma referencia dejan uno 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-092f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-092f: misma referencia con otro monto: conflicto y nada cambia 72ms"
+    },
+    {
+      "tc_id": "TC-AGT-093e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-093e: la misma referencia en dos cuentas no choca 64ms"
+    },
+    {
+      "tc_id": "TC-AGT-094f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-094f: sin referencia, vacía o de 129 caracteres: invalid_payload; 128 se acepta 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-095h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-095h: la referencia sobrevive a un reinicio del servidor 71ms"
+    },
+    {
+      "tc_id": "TC-AGT-096e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-096e: deshacer libera la referencia 60ms"
+    },
+    {
+      "tc_id": "TC-AGT-097e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3409 — referencia de origen e idempotencia > TC-AGT-097e: un reintento que solo cambia la nota no es conflicto ni reescribe 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-100h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-100h: reservar 200.000 de Disponible a «Viaje» 53ms"
+    },
+    {
+      "tc_id": "TC-AGT-101h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-101h: sacar 50.000 de «Viaje» hacia Disponible 56ms"
+    },
+    {
+      "tc_id": "TC-AGT-102e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-102e: mover 30.000 de «Viaje» a «Carro» no cambia el total reservado 54ms"
+    },
+    {
+      "tc_id": "TC-AGT-103f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-103f: sacar más de lo que hay: piso con el límite real 55ms"
+    },
+    {
+      "tc_id": "TC-AGT-104f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-104f: reservar por encima del margen del mes: techo 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-105f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-105f: extremos inválidos: invalid_target 61ms"
+    },
+    {
+      "tc_id": "TC-AGT-106e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-106e: sacar exactamente todo el saldo deja el bolsillo en 0 55ms"
+    },
+    {
+      "tc_id": "TC-AGT-107e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3410 — operaciones de bolsillo > TC-AGT-107e: la idempotencia vale igual para una operación de bolsillo 52ms"
+    },
+    {
+      "tc_id": "TC-AGT-108e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3410 — el piso en una cadena larga > TC-AGT-108e: cadena larga: el piso se valida sobre 24 periodos y 300 operaciones 6ms"
+    },
+    {
+      "tc_id": "TC-AGT-110h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-110h: cambiar la categoría mueve el monto de una hoja a la otra 51ms"
+    },
+    {
+      "tc_id": "TC-AGT-111e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-111e: cambiar el monto y la fecha a otro periodo abierto 68ms"
+    },
+    {
+      "tc_id": "TC-AGT-112f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-112f: un movimiento registrado a mano no se puede corregir 52ms"
+    },
+    {
+      "tc_id": "TC-AGT-113f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-113f: corregir en un periodo cerrado, o mover hacia uno cerrado, se rechaza 67ms"
+    },
+    {
+      "tc_id": "TC-AGT-114f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-114f: id inexistente y referencia de otra cuenta: el mismo 404 70ms"
+    },
+    {
+      "tc_id": "TC-AGT-115f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-115f: una operación de bolsillo no se corrige: unsupported_type 94ms"
+    },
+    {
+      "tc_id": "TC-AGT-116f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3411 — el cuerpo de una corrección > TC-AGT-116f: el cuerpo de la corrección es estricto y no puede ir vacío 0ms"
+    },
+    {
+      "tc_id": "TC-AGT-117e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3411 — corregir un gasto o ingreso del agente > TC-AGT-117e: corregir por referencia funciona igual y la marca no cambia 50ms"
+    },
+    {
+      "tc_id": "TC-AGT-120h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-120h: deshacer un gasto lo quita del Ejecutado y de las lecturas 51ms"
+    },
+    {
+      "tc_id": "TC-AGT-121h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-121h: deshacer una reserva devuelve el bolsillo y el Disponible 54ms"
+    },
+    {
+      "tc_id": "TC-AGT-122f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-122f: deshacer una reserva ya gastada en parte: piso 56ms"
+    },
+    {
+      "tc_id": "TC-AGT-123f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-123f: un movimiento registrado a mano no se puede deshacer 48ms"
+    },
+    {
+      "tc_id": "TC-AGT-124f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-124f: deshacer en un periodo cerrado se rechaza 60ms"
+    },
+    {
+      "tc_id": "TC-AGT-125e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-125e: deshacer dos veces: la segunda no encuentra nada 55ms"
+    },
+    {
+      "tc_id": "TC-AGT-126e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-126e: deshacer un retiro y un mover del agente 89ms"
+    },
+    {
+      "tc_id": "TC-AGT-127f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-escrituras.test.ts > FR-3412 — deshacer un movimiento del agente > TC-AGT-127f: la celda del aporte ya fue bajada a mano: cell_already_changed 62ms"
+    },
+    {
+      "tc_id": "TC-AGT-128h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3412 — deshacer un aporte > TC-AGT-128h: undoAporteOp baja la celda y quita el movimiento 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-129e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-escrituras.test.ts > FR-3412 — deshacer un aporte > TC-AGT-129e: con dos aportes en la misma celda, deshacer uno deja el otro 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-130h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-130h: el movimiento del agente lleva marca; el manual no 136ms"
+    },
+    {
+      "tc_id": "TC-AGT-131h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-131h: el guardado completo desde el navegador conserva la marca 73ms"
+    },
+    {
+      "tc_id": "TC-AGT-132e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-132e: editar el movimiento del agente desde la app no borra la marca 63ms"
+    },
+    {
+      "tc_id": "TC-AGT-133f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-133f: el navegador no puede inventar ni cambiar la marca 70ms"
+    },
+    {
+      "tc_id": "TC-AGT-134e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-134e: revocar el token no borra la marca 87ms"
+    },
+    {
+      "tc_id": "TC-AGT-135e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-135e: un cliente viejo que no reenvía la marca no la pierde 55ms"
+    },
+    {
+      "tc_id": "TC-AGT-136f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-136f: la base rechaza una marca a medias y una referencia repetida 47ms"
+    },
+    {
+      "tc_id": "TC-AGT-137h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > FR-3413 — la marca del agente > TC-AGT-137h: la marca sobrevive al cierre de un mes y a un reinicio 74ms"
+    },
+    {
+      "tc_id": "TC-AGT-140h",
+      "status": "pass",
+      "notes": "✓  666 [chromium] › tests/e2e/tony-ledger.spec.ts:211:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-140h: el Detalle muestra «Agent-L» en lo del agente y nada en lo manual (299ms)"
+    },
+    {
+      "tc_id": "TC-AGT-141e",
+      "status": "pass",
+      "notes": "✓  667 [chromium] › tests/e2e/tony-ledger.spec.ts:232:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-141e: un nombre de 60 caracteres se trunca sin desbordar a 375 px (210ms)"
+    },
+    {
+      "tc_id": "TC-AGT-142f",
+      "status": "pass",
+      "notes": "✓  668 [chromium] › tests/e2e/tony-ledger.spec.ts:277:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-142f: sin movimientos de agente el Detalle no cambia (311ms)"
+    },
+    {
+      "tc_id": "TC-AGT-143e",
+      "status": "pass",
+      "notes": "✓  669 [chromium] › tests/e2e/tony-ledger.spec.ts:296:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-143e: contraste de la etiqueta en tema claro y oscuro, y sin desbordar a 1280 px (450ms)"
+    },
+    {
+      "tc_id": "TC-AGT-144h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/tony-ledger-etiqueta.test.ts > FR-3414 — la app muestra qué movimientos registró el agente > TC-AGT-144h: la fila se pinta con el nombre que trae el movimiento y lo expone a lectores de pantalla 1097ms"
+    },
+    {
+      "tc_id": "TC-AGT-145e",
+      "status": "pass",
+      "notes": "✓  670 [chromium] › tests/e2e/tony-ledger.spec.ts:314:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-145e: lo del agente se edita y se borra desde la app como lo manual (497ms)"
+    },
+    {
+      "tc_id": "TC-AGT-150h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-150h: el resumen da las cifras del libro, peso a peso 44ms"
+    },
+    {
+      "tc_id": "TC-AGT-151h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > FR-3415 — el resumen sale del dominio > TC-AGT-151h: el resumen sale de las funciones del dominio, no de una copia 15ms"
+    },
+    {
+      "tc_id": "TC-AGT-152e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-152e: sin periodo, responde el vigente e indica cuál y su rango 61ms"
+    },
+    {
+      "tc_id": "TC-AGT-153f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-153f: periodo mal formado responde invalid_period 58ms"
+    },
+    {
+      "tc_id": "TC-AGT-154e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-154e: un periodo válido sin datos responde ceros, no un error 43ms"
+    },
+    {
+      "tc_id": "TC-AGT-155f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-155f: cuenta sin libro guardado responde not_found 36ms"
+    },
+    {
+      "tc_id": "TC-AGT-156e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3415 — resumen del periodo > TC-AGT-156e: el Disponible no depende del horizonte que tenga la pantalla 76ms"
+    },
+    {
+      "tc_id": "TC-AGT-160h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-160h: la lista del periodo trae lo manual y lo del agente, y distingue 61ms"
+    },
+    {
+      "tc_id": "TC-AGT-161h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-161h: buscar por referencia devuelve ese movimiento 61ms"
+    },
+    {
+      "tc_id": "TC-AGT-162f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-162f: referencia inexistente o de otra cuenta responde not_found 67ms"
+    },
+    {
+      "tc_id": "TC-AGT-163e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-163e: filtrar por un nodo padre devuelve su subárbol 56ms"
+    },
+    {
+      "tc_id": "TC-AGT-164e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-164e: un periodo sin movimientos responde lista vacía 43ms"
+    },
+    {
+      "tc_id": "TC-AGT-165f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3416 — movimientos de un periodo y por referencia > TC-AGT-165f: periodo mal formado o nodo inexistente 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-170h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3417 — periodo de una fecha > TC-AGT-170h: cuenta por mes: 2026-10-10 es octubre entero 42ms"
+    },
+    {
+      "tc_id": "TC-AGT-171e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3417 — periodo de una fecha > TC-AGT-171e: cuenta con ciclos y ciclo cerrado 64ms"
+    },
+    {
+      "tc_id": "TC-AGT-172f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-lecturas.test.ts > FR-3417 — periodo de una fecha > TC-AGT-172f: fecha inexistente, mal formada o ausente responde invalid_date 40ms"
+    },
+    {
+      "tc_id": "TC-AGT-173e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > FR-3417 — fronteras del calendario > TC-AGT-173e: la frontera del ciclo cae entre el día 20 y el 21 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-174h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > FR-3417 — fronteras del calendario > TC-AGT-174h: en modo mes el rango es el primer y el último día del mes 0ms"
+    },
+    {
+      "tc_id": "TC-AGT-180h",
+      "status": "pass",
+      "notes": "✓  671 [chromium] › tests/e2e/tony-ledger.spec.ts:346:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-180h: lo que registra el agente aparece en la app abierta sin recargar (334ms)"
+    },
+    {
+      "tc_id": "TC-AGT-181h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3418 — sincronización con la app abierta > TC-AGT-181h: cada escritura aceptada avanza la revisión en 1 y la publica 63ms"
+    },
+    {
+      "tc_id": "TC-AGT-182f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3418 — sincronización con la app abierta > TC-AGT-182f: un guardado con revisión vieja no borra lo del agente 49ms"
+    },
+    {
+      "tc_id": "TC-AGT-183f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3418 — sincronización con la app abierta > TC-AGT-183f: una escritura rechazada no cambia la revisión ni publica 57ms"
+    },
+    {
+      "tc_id": "TC-AGT-184e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > FR-3418 — sincronización con la app abierta > TC-AGT-184e: dos escrituras casi simultáneas quedan las dos 86ms"
+    },
+    {
+      "tc_id": "TC-AGT-190h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > FR-3419 — el contrato documentado > TC-AGT-190h: la documentación describe las siete operaciones 4ms"
+    },
+    {
+      "tc_id": "TC-AGT-191f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > FR-3419 — el contrato documentado > TC-AGT-191f: ningún token con formato válido en la documentación ni en los ejemplos 178ms"
+    },
+    {
+      "tc_id": "TC-AGT-192e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > FR-3419 — el contrato documentado > TC-AGT-192e: todos los códigos de rechazo que el servidor emite están documentados 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-200h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3401 — el acceso por sesión sigue igual > TC-AGT-200h: con sesión, las rutas de /api/v1 responden como antes 48ms"
+    },
+    {
+      "tc_id": "TC-AGT-201f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3401 — el acceso por sesión sigue igual > TC-AGT-201f: sin sesión, cada ruta protegida de /api/v1 sigue en 401 40ms"
+    },
+    {
+      "tc_id": "TC-AGT-202e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-acceso.test.ts > FR-3404 / NFR-3401 — withApi no conoce el token > TC-AGT-202e: withApi toma la identidad solo de la sesión aunque llegue un token 1ms"
+    },
+    {
+      "tc_id": "TC-AGT-205h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3402 — las mutaciones del navegador exigen sesión y Origin > TC-AGT-205h: con sesión y Origin permitido se acepta como hoy 48ms"
+    },
+    {
+      "tc_id": "TC-AGT-206f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3402 — las mutaciones del navegador exigen sesión y Origin > TC-AGT-206f: con sesión y Origin no permitido responde 403 44ms"
+    },
+    {
+      "tc_id": "TC-AGT-207e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3402 — las mutaciones del navegador exigen sesión y Origin > TC-AGT-207e: token + Origin permitido, sin sesión, sigue siendo 401 44ms"
+    },
+    {
+      "tc_id": "TC-AGT-210h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > NFR-3403 — las cifras de la pantalla no cambian > TC-AGT-210h: las funciones de cálculo devuelven lo mismo que antes 2ms"
+    },
+    {
+      "tc_id": "TC-AGT-211e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-lecturas.test.ts > NFR-3403 — las cifras de la pantalla no cambian > TC-AGT-211e: un movimiento con marca cuenta igual que uno sin marca 7ms"
+    },
+    {
+      "tc_id": "TC-AGT-212f",
+      "status": "pass",
+      "notes": "✓  672 [chromium] › tests/e2e/tony-ledger.spec.ts:367:7 › tony-ledger — lo que el dueño ve (FR-3414, FR-3418) › TC-AGT-212f: un libro sin movimientos de agente se ve idéntico (348ms)"
+    },
+    {
+      "tc_id": "TC-AGT-215h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3404 — las reglas valen igual para el agente > TC-AGT-215h: paridad: lo que una puerta acepta, la otra lo deja igual 89ms"
+    },
+    {
+      "tc_id": "TC-AGT-216f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3404 — las reglas valen igual para el agente > TC-AGT-216f: paridad: lo que una puerta rechaza, la otra también 117ms"
+    },
+    {
+      "tc_id": "TC-AGT-217e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3404 — las reglas valen igual para el agente > TC-AGT-217e: tras escribir, corregir y deshacer, cada celda es la suma de sus movimientos 85ms"
+    },
+    {
+      "tc_id": "TC-AGT-218f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3404 — las reglas valen igual para el agente > TC-AGT-218f: una escritura rechazada deja la base exactamente igual 74ms"
+    },
+    {
+      "tc_id": "TC-AGT-220h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3405 — aislamiento entre cuentas > TC-AGT-220h: las siete operaciones con el token de A solo devuelven datos de A 85ms"
+    },
+    {
+      "tc_id": "TC-AGT-221f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3405 — aislamiento entre cuentas > TC-AGT-221f: barrido con ids de B: todo rechazado y B no cambia 85ms"
+    },
+    {
+      "tc_id": "TC-AGT-222e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3405 — aislamiento entre cuentas > TC-AGT-222e: el aislamiento de /api/v1 por sesión se conserva 66ms"
+    },
+    {
+      "tc_id": "TC-AGT-225h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > NFR-3406 — lo que ya había sigue igual > TC-AGT-225h: tras la migración, lo que había se lee igual y sin marca 154ms"
+    },
+    {
+      "tc_id": "TC-AGT-226e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > NFR-3406 — lo que ya había sigue igual > TC-AGT-226e: movimientos manuales sin referencia no chocan entre sí 76ms"
+    },
+    {
+      "tc_id": "TC-AGT-227f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-marca.test.ts > NFR-3406 — lo que ya había sigue igual > TC-AGT-227f: un guardado con el cuerpo de antes de la feature se sigue aceptando 77ms"
+    },
+    {
+      "tc_id": "TC-AGT-230h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3407 — los límites del login no se tocan > TC-AGT-230h: el límite del login sigue activo con su valor 80ms"
+    },
+    {
+      "tc_id": "TC-AGT-231e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3407 — los límites del login no se tocan > TC-AGT-231e: agotar el tope del agente no frena el login ni la recuperación 183ms"
+    },
+    {
+      "tc_id": "TC-AGT-232f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3407 — los límites del login no se tocan > TC-AGT-232f: agotar el límite del login no frena al agente 89ms"
+    },
+    {
+      "tc_id": "TC-AGT-235h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3408 — la sincronización del navegador sigue igual > TC-AGT-235h: un cambio del navegador sigue llegando a los otros dispositivos 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-236f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3408 — la sincronización del navegador sigue igual > TC-AGT-236f: el stream no acepta el token del agente 39ms"
+    },
+    {
+      "tc_id": "TC-AGT-237e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3408 — la sincronización del navegador sigue igual > TC-AGT-237e: el evento de un cambio del agente tiene la misma forma que el del navegador 72ms"
+    },
+    {
+      "tc_id": "TC-AGT-240h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3409 — el registro manual sigue igual tras el refactor > TC-AGT-240h: el registro manual por /api/v1 conserva respuesta y efecto 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-241f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3409 — el registro manual sigue igual tras el refactor > TC-AGT-241f: por /api/v1 un movimiento de bolsillo sigue sin editarse ni borrarse 52ms"
+    },
+    {
+      "tc_id": "TC-AGT-242e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3409 — el registro manual sigue igual tras el refactor > TC-AGT-242e: los códigos de rechazo de /api/v1 no cambian 63ms"
+    },
+    {
+      "tc_id": "TC-AGT-245f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-245f: el token no queda en claro ni en la salida del servidor ni en la base 79ms"
+    },
+    {
+      "tc_id": "TC-AGT-246f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-246f: el token en la URL o en el cuerpo no autentica 52ms"
+    },
+    {
+      "tc_id": "TC-AGT-247h",
+      "status": "pass",
+      "notes": "✓  664 [chromium] › tests/e2e/tony-ledger.spec.ts:115:7 › tony-ledger — la superficie del agente en el servidor real › TC-AGT-247h: todo handler bajo la superficie del agente exige token (186ms)"
+    },
+    {
+      "tc_id": "TC-AGT-248e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3410 — el token es un secreto > TC-AGT-248e: el escáner de secretos detecta un token con formato válido 57ms"
+    },
+    {
+      "tc_id": "TC-AGT-250f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-250f: cuerpo con campos de más, tipos erróneos o demasiado grande 46ms"
+    },
+    {
+      "tc_id": "TC-AGT-251f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-251f: cadenas de ataque en nota y referencia se guardan como texto 70ms"
+    },
+    {
+      "tc_id": "TC-AGT-252h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-252h: toda respuesta de la superficie lleva Cache-Control: no-store 52ms"
+    },
+    {
+      "tc_id": "TC-AGT-253e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3411 — la superficie no se alcanza por un proxy > TC-AGT-253e: lo que llega por un proxy no se atiende ni con token válido 59ms"
+    },
+    {
+      "tc_id": "TC-AGT-254f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-254f: un fallo interno no filtra detalles 57ms"
+    },
+    {
+      "tc_id": "TC-AGT-255h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3412 — log de la superficie > TC-AGT-255h: cada petición aceptada deja su línea con el id del token 44ms"
+    },
+    {
+      "tc_id": "TC-AGT-256f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-paridad.test.ts > NFR-3410 / NFR-3411 / NFR-3412 — seguridad de la superficie > TC-AGT-256f: el log no contiene el token, la nota ni el monto 54ms"
+    },
+    {
+      "tc_id": "TC-AGT-257e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3412 — log de la superficie > TC-AGT-257e: una petición rechazada por token también se registra, sin identidad 40ms"
+    },
+    {
+      "tc_id": "TC-AGT-260h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > NFR-3413 — el CI corre las pruebas de la feature > TC-AGT-260h: el CI ejecuta la suite completa en push y en pull request 0ms"
+    },
+    {
+      "tc_id": "TC-AGT-261h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3414 — el healthcheck no cambia > TC-AGT-261h: /health responde 200 con la superficie encendida 22ms"
+    },
+    {
+      "tc_id": "TC-AGT-262e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-consultas.test.ts > NFR-3415 — el trabajo no crece con el tamaño del libro > TC-AGT-262e: el resumen carga el estado una sola vez 241ms"
+    },
+    {
+      "tc_id": "TC-AGT-263e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > NFR-3413 — el CI corre las pruebas de la feature > TC-AGT-263e: las pruebas de la feature viven donde los runners ya miran 24ms"
+    },
+    {
+      "tc_id": "TC-AGT-264f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/agente-contrato.test.ts > NFR-3413 — el CI corre las pruebas de la feature > TC-AGT-264f: no hay un comando de pruebas aparte que el CI no llame 18ms"
+    },
+    {
+      "tc_id": "TC-AGT-265e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3414 — el healthcheck no cambia > TC-AGT-265e: /health responde 200 con la superficie apagada 21ms"
+    },
+    {
+      "tc_id": "TC-AGT-266f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-acceso.test.ts > NFR-3414 — el healthcheck no cambia > TC-AGT-266f: /health no pasa por el envoltorio del agente 22ms"
+    },
+    {
+      "tc_id": "TC-AGT-267h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-consultas.test.ts > NFR-3415 — el trabajo no crece con el tamaño del libro > TC-AGT-267h: registrar un movimiento cuesta lo mismo con un libro chico que con uno grande 167ms"
+    },
+    {
+      "tc_id": "TC-AGT-268f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/agente-consultas.test.ts > NFR-3415 — el trabajo no crece con el tamaño del libro > TC-AGT-268f: las lecturas no escriben en el libro 55ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-3401",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3402",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3403",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3404",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3405",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3406",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3407",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3408",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3409",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3410",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3411",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3412",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3413",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3414",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3415",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3416",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3417",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3418",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3419",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-3401a",
+      "fr_id": "FR-3401",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3401b",
+      "fr_id": "FR-3401",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3401c",
+      "fr_id": "FR-3401",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3402a",
+      "fr_id": "FR-3402",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3402b",
+      "fr_id": "FR-3402",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3402c",
+      "fr_id": "FR-3402",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3403a",
+      "fr_id": "FR-3403",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3403b",
+      "fr_id": "FR-3403",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3403c",
+      "fr_id": "FR-3403",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3404a",
+      "fr_id": "FR-3404",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3404b",
+      "fr_id": "FR-3404",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3404c",
+      "fr_id": "FR-3404",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3405a",
+      "fr_id": "FR-3405",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3405b",
+      "fr_id": "FR-3405",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3405c",
+      "fr_id": "FR-3405",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3406a",
+      "fr_id": "FR-3406",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3406b",
+      "fr_id": "FR-3406",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3406c",
+      "fr_id": "FR-3406",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3407a",
+      "fr_id": "FR-3407",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3407b",
+      "fr_id": "FR-3407",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3407c",
+      "fr_id": "FR-3407",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3408a",
+      "fr_id": "FR-3408",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3408b",
+      "fr_id": "FR-3408",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3408c",
+      "fr_id": "FR-3408",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3408d",
+      "fr_id": "FR-3408",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3409a",
+      "fr_id": "FR-3409",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3409b",
+      "fr_id": "FR-3409",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3409c",
+      "fr_id": "FR-3409",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3410a",
+      "fr_id": "FR-3410",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3410b",
+      "fr_id": "FR-3410",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3410c",
+      "fr_id": "FR-3410",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3411a",
+      "fr_id": "FR-3411",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3411b",
+      "fr_id": "FR-3411",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3411c",
+      "fr_id": "FR-3411",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3412a",
+      "fr_id": "FR-3412",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3412b",
+      "fr_id": "FR-3412",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3412c",
+      "fr_id": "FR-3412",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3412d",
+      "fr_id": "FR-3412",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3413a",
+      "fr_id": "FR-3413",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3413b",
+      "fr_id": "FR-3413",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3413c",
+      "fr_id": "FR-3413",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3414a",
+      "fr_id": "FR-3414",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3414b",
+      "fr_id": "FR-3414",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3414c",
+      "fr_id": "FR-3414",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3415a",
+      "fr_id": "FR-3415",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3415b",
+      "fr_id": "FR-3415",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3415c",
+      "fr_id": "FR-3415",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3416a",
+      "fr_id": "FR-3416",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3416b",
+      "fr_id": "FR-3416",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3416c",
+      "fr_id": "FR-3416",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3417a",
+      "fr_id": "FR-3417",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3417b",
+      "fr_id": "FR-3417",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3417c",
+      "fr_id": "FR-3417",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3418a",
+      "fr_id": "FR-3418",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3418b",
+      "fr_id": "FR-3418",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3418c",
+      "fr_id": "FR-3418",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3419a",
+      "fr_id": "FR-3419",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3419b",
+      "fr_id": "FR-3419",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 172,
+    "passed": 172,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2430,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 3461,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 171,
+      "output": "✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "security-config",
+      "command": "../../../scripts/security-config.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2435,
+      "output": "✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, rutas con sesión, bindings, secretos, correos, deps)"
+    },
+    {
+      "name": "secret-scan",
+      "command": "../../../scripts/secret-scan.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 1443,
+      "output": "[secret-scan] patrones: sin secretos.\n[secret-scan] gitleaks no está instalado: solo corrieron los patrones (el CI sí lo exige)."
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 87425,
+      "output": " WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-10-13T22:39:02.598Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 19296,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-5ef55edffe3d09e0.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 232188,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (117ms)\n  ✓  782 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (232ms)\n  ✓  784 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  784 passed (3.9m)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 81330,
+    "e2e_ms": 231361,
+    "gates_ms": 348881,
+    "total_ms": 661629
+  }
+}

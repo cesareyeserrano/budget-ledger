@@ -1,0 +1,281 @@
+{
+  "project": "T-Ledger — feature tony-ledger",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-3401",
+      "title": "Crear un token de agente por comando en el servidor",
+      "level": "complete",
+      "evidence": "6/6 TCs en verde en verify-run (TC-AGT-010h … TC-AGT-015f). scripts/agent-token.mjs (create) y src/server/agent/tokens.ts: token de 256 bits, solo su hash SHA-256 en agent_token."
+    },
+    {
+      "id": "FR-3402",
+      "title": "Listar y revocar tokens de agente por comando; un token revocado deja de funcionar de inmediato",
+      "level": "partial",
+      "evidence": "6/6 TCs en verde en verify-run (TC-AGT-020h … TC-AGT-025f). scripts/agent-token.mjs (list, revoke) y resolveToken sin caché: la revocación vale en la siguiente petición. DEUDA DECLARADA: TC-AGT-024e comprueba la regla de «último uso como mucho una vez por minuto» contra Postgres real, atrasando la marca 61 segundos por SQL, en vez de con un reloj inyectado y un contador de UPDATE"
+    },
+    {
+      "id": "FR-3403",
+      "title": "La superficie del agente autentica por token y solo alcanza la cuenta que lo creó",
+      "level": "partial",
+      "evidence": "7/7 TCs en verde en verify-run (TC-AGT-030h … TC-AGT-036f). withAgent en src/server/agent/http.ts: la cuenta sale solo del token; cinco rutas bajo src/app/api/agent/v1, siete operaciones. DEUDA DECLARADA: ADR-06 se implementa mirando el VALOR de x-forwarded-for —una sola dirección, declarada en LEDGER_AGENT_SOURCES; ninguna es interna por defecto, tampoco el loopback— y no su PRESENCIA, como dice 02_SYSTEM_DESIGN.md. Además, todo método que una ruta no ofrece p | TC-AGT-034f y TC-AGT-247h, planeados como integración y unitaria, se ejecutan como e2e contra el build de producción (tests/e2e/tony-ledger.spec.ts)"
+    },
+    {
+      "id": "FR-3404",
+      "title": "La API del navegador no acepta el token de agente",
+      "level": "complete",
+      "evidence": "5/5 TCs en verde en verify-run (TC-AGT-040f … TC-AGT-044f). withApi (src/server/http.ts) no lee Authorization; las rutas de /api/v1 responden 401 a un token sin sesión."
+    },
+    {
+      "id": "FR-3405",
+      "title": "Interruptor de la superficie del agente",
+      "level": "complete",
+      "evidence": "4/4 TCs en verde en verify-run (TC-AGT-050f … TC-AGT-053f). LEDGER_AGENT_API en src/server/env.ts (solo «on»); primer paso de withAgent. Todo método no ofrecido pasa por agentNotFound."
+    },
+    {
+      "id": "FR-3406",
+      "title": "Tope de peticiones por token",
+      "level": "partial",
+      "evidence": "6/6 TCs en verde en verify-run (TC-AGT-060h … TC-AGT-065e). Cubos por token (30 escrituras, 120 lecturas por minuto) y de intentos inválidos en src/server/agent/limits.ts sobre rateLimit.ts. DEUDA DECLARADA: El cubo de intentos con token inválido es uno solo, global, y no uno por dirección de origen como dice el criterio de aceptación"
+    },
+    {
+      "id": "FR-3407",
+      "title": "Leer el árbol vigente de la cuenta",
+      "level": "complete",
+      "evidence": "5/5 TCs en verde en verify-run (TC-AGT-070h … TC-AGT-074e). agentTree y GET /api/agent/v1/tree; ninguna operación escribe sobre el árbol."
+    },
+    {
+      "id": "FR-3408",
+      "title": "Registrar un gasto o un ingreso con las mismas reglas que el registro manual",
+      "level": "complete",
+      "evidence": "9/9 TCs en verde en verify-run (TC-AGT-080h … TC-AGT-088f). agentInsert sobre insertMovementWith: la misma secuencia de guardias que el registro manual; el periodo se deriva de la fecha."
+    },
+    {
+      "id": "FR-3409",
+      "title": "Referencia de origen: registrar dos veces lo mismo deja un solo movimiento",
+      "level": "partial",
+      "evidence": "8/8 TCs en verde en verify-run (TC-AGT-090h … TC-AGT-097e). Columna origin_ref con índice único parcial por cuenta; la referencia se busca con la fila del libro bloqueada. DEUDA DECLARADA: El «reinicio del servidor» de TC-AGT-095h y TC-AGT-137h se hace en proceso: se cierra el cliente de base de la app y se recargan todos sus módulos, en vez de matar y volver a arrancar el proceso | El reintento se compara contra el movimiento TAL COMO ESTÁ AHORA, no contra el cuerpo que lo creó: si el dueño lo corrigió en la app, reintentar el cuerpo original responde 409 reference_conflict (con el movimiento vigente en el detalle) en vez de 200; y si el"
+    },
+    {
+      "id": "FR-3410",
+      "title": "Registrar una operación de bolsillo: reservar, sacar o mover",
+      "level": "complete",
+      "evidence": "9/9 TCs en verde en verify-run (TC-AGT-100h … TC-AGT-108e). agentInsert con type transfer → applyReserveOp; el rechazo trae regla, periodo y límite."
+    },
+    {
+      "id": "FR-3411",
+      "title": "Corregir un gasto o ingreso registrado por un agente",
+      "level": "complete",
+      "evidence": "8/8 TCs en verde en verify-run (TC-AGT-110h … TC-AGT-117e). agentUpdate sobre writeMovementWith con soloDeAgente; editMovement del dominio."
+    },
+    {
+      "id": "FR-3412",
+      "title": "Deshacer un movimiento registrado por un agente, incluidas las operaciones de bolsillo",
+      "level": "complete",
+      "evidence": "10/10 TCs en verde en verify-run (TC-AGT-120h … TC-AGT-129e). agentUndo: deleteMovement, removeReserveOp y la nueva undoAporteOp (src/domain/reserve.ts)."
+    },
+    {
+      "id": "FR-3413",
+      "title": "Cada movimiento del agente queda marcado y la marca sobrevive a los guardados de la app",
+      "level": "complete",
+      "evidence": "8/8 TCs en verde en verify-run (TC-AGT-130h … TC-AGT-137h). Movement.origin + conservarOrigen en saveLedger: el servidor repone la marca desde lo guardado en cada guardado completo."
+    },
+    {
+      "id": "FR-3414",
+      "title": "La app muestra qué movimientos registró el agente",
+      "level": "partial",
+      "evidence": "6/6 TCs en verde en verify-run (TC-AGT-140h … TC-AGT-145e). src/components/AgentTag.tsx en el Detalle de la celda (escritorio) y en la pantalla de la hoja (teléfono). DEUDA DECLARADA: El caso de 375 px (TC-AGT-141e) se prueba en la pantalla de la categoría del teléfono, y compara la fila del agente con una fila manual en vez de exigir scrollWidth ≤ clientWidth en la fila | TC-AGT-212f no afirma la cifra del Balance (su plan pedía «el Balance muestra el mismo Disponible que GET /api/v1/ledger permite derivar») y TC-AGT-200h no afirma que la cookie de sesión conserve nombre y atributos"
+    },
+    {
+      "id": "FR-3415",
+      "title": "Resumen de un periodo calculado en el servidor con las funciones de la pantalla",
+      "level": "complete",
+      "evidence": "7/7 TCs en verde en verify-run (TC-AGT-150h … TC-AGT-156e). buildSummary / GET /summary: rollupTable, typeTotals, computeBalanceSeries con openingCarry y resolvedBalance sobre el rango de la pantalla (closureScope)."
+    },
+    {
+      "id": "FR-3416",
+      "title": "Leer los movimientos de un periodo y ubicar uno por su referencia",
+      "level": "complete",
+      "evidence": "6/6 TCs en verde en verify-run (TC-AGT-160h … TC-AGT-165f). agentMovements y agentMovementByRef / GET /movements."
+    },
+    {
+      "id": "FR-3417",
+      "title": "Decir a qué periodo pertenece una fecha",
+      "level": "complete",
+      "evidence": "5/5 TCs en verde en verify-run (TC-AGT-170h … TC-AGT-174h). agentPeriodOf / GET /period con el calendario de la cuenta."
+    },
+    {
+      "id": "FR-3418",
+      "title": "Lo que escribe el agente aparece en la app abierta y no se pierde por un guardado posterior",
+      "level": "complete",
+      "evidence": "5/5 TCs en verde en verify-run (TC-AGT-180h … TC-AGT-184e). Cada escritura aceptada avanza ledger.revision en 1 y publica por syncHub; el 409 por revisión protege lo del agente."
+    },
+    {
+      "id": "FR-3419",
+      "title": "Contrato documentado de la superficie del agente",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-190h … TC-AGT-192e). docs/agent-api.md: las siete operaciones, los 16 códigos y las cifras del resumen; sus ejemplos se validan contra los esquemas."
+    },
+    {
+      "id": "NFR-3401",
+      "title": "Regression: El acceso por sesión del navegador sigue igual: las rutas de `/api/v1/*` y `/api/auth/*` conservan métodos, respuestas, códigos ",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-200h … TC-AGT-202e). withApi sin cambios de comportamiento; pruebas con sesión, sin sesión y con token en la cabecera."
+    },
+    {
+      "id": "NFR-3402",
+      "title": "Regression: Toda mutación de la API del navegador sigue exigiendo sesión y un Origin permitido; una petición sin sesión recibe el mismo rech",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-205h … TC-AGT-207e). Las mutaciones de /api/v1 siguen exigiendo sesión y Origin permitido."
+    },
+    {
+      "id": "NFR-3403",
+      "title": "Regression: Las cifras de la pantalla no cambian: `rollup.ts`, `balance.ts` y `reserve.ts` conservan sus resultados; el resumen del servidor",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-210h … TC-AGT-212f). El dominio de cálculo no cambia; el resumen lo llama. Un movimiento con marca cuenta igual que uno sin ella."
+    },
+    {
+      "id": "NFR-3404",
+      "title": "Regression: Las reglas del servidor valen igual para el agente: ninguna escritura por la superficie del agente deja el libro en un estado qu",
+      "level": "complete",
+      "evidence": "4/4 TCs en verde en verify-run (TC-AGT-215h … TC-AGT-218f). Paridad entre las dos puertas: mismas celdas y mismo diario al aceptar, mismo rechazo al rechazar."
+    },
+    {
+      "id": "NFR-3405",
+      "title": "Regression: El aislamiento entre cuentas se mantiene: ninguna lectura ni escritura, por ninguna de las dos superficies, alcanza datos de otr",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-220h … TC-AGT-222e). Toda consulta filtra por la cuenta del token; los ids de otra cuenta se contestan como inexistentes."
+    },
+    {
+      "id": "NFR-3406",
+      "title": "Regression: Los movimientos registrados a mano, sin referencia de origen ni marca, siguen siendo válidos y se comportan igual: se leen, se e",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-225h … TC-AGT-227f). Migración 0013 aditiva e idempotente; las columnas nuevas son NULL en lo manual y el índice único es parcial."
+    },
+    {
+      "id": "NFR-3407",
+      "title": "Regression: Los límites de intentos del login y de la recuperación de acceso siguen activos y con los mismos valores; el tope de la superfic",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-230h … TC-AGT-232f). Cubos propios del agente; el límite del login conserva su valor y ninguno consume el del otro."
+    },
+    {
+      "id": "NFR-3408",
+      "title": "Regression: La sincronización entre pestañas y dispositivos sigue funcionando para la sesión del navegador: el stream no cambia de contrato ",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-235h … TC-AGT-237e). El stream de sincronización no acepta el token; el evento del agente tiene la misma forma que el del navegador."
+    },
+    {
+      "id": "NFR-3409",
+      "title": "Regression: La suite existente sigue verde: las pruebas de la raíz y de cada feature cerrada pasan sin relajar aserciones ni saltar pruebas.",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-240h … TC-AGT-242e). insertMovement y writeMovement conservan firma, códigos y efecto tras compartir su cuerpo; suite completa 1998/1998 en verify-run."
+    },
+    {
+      "id": "NFR-3410",
+      "title": "Security: El token de agente se trata como un secreto: se genera con el generador criptográfico del sistema, solo su hash se guarda, la comp",
+      "level": "complete",
+      "evidence": "4/4 TCs en verde en verify-run (TC-AGT-245f … TC-AGT-248e). Token solo en Authorization, hash en base, fuera de logs; security-config.sh exige withAgent en cada método exportado."
+    },
+    {
+      "id": "NFR-3411",
+      "title": "Security: La superficie del agente valida toda entrada en el borde con esquemas estrictos y acota su tamaño; los errores no filtran detalle ",
+      "level": "partial",
+      "evidence": "5/5 TCs en verde en verify-run (TC-AGT-250f … TC-AGT-254f). Esquemas Zod estrictos, tope de 16 KiB, sin caracteres de control, errores sin detalle; origen por valor en src/server/agent/origin.ts. DEUDA DECLARADA: La regla de «solo red interna» mantiene la puerta fuera del frente público, pero NO autentica a un cliente que conecta directo al puerto de la app: ese elige la cabecera x-forwarded-for, así que para él la única barrera es el token. Y que `tailscale serve` ree"
+    },
+    {
+      "id": "NFR-3412",
+      "title": "Observability: Cada petición a la superficie del agente deja una línea de log con fecha, método, ruta, estado, duración y el identificador d",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-255h … TC-AGT-257e). Una línea por petición con el id del token; nunca el token, la nota, el monto ni la referencia."
+    },
+    {
+      "id": "NFR-3413",
+      "title": "CI/CD: El flujo de CI existente ejecuta las pruebas nuevas de esta feature junto con la suite completa en cada push y en cada pull request a",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-260h … TC-AGT-264f). .github/workflows/ci.yml sin cambios: corre vitest, e2e y e2e de backend en push a main y en cada PR; las pruebas viven donde los runners ya miran."
+    },
+    {
+      "id": "NFR-3414",
+      "title": "Reliability: El healthcheck no cambia: GET /health responde 200 con la superficie del agente habilitada o apagada, y no exige token.",
+      "level": "complete",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-261h … TC-AGT-266f). GET /health no cambia y no pasa por la envoltura del agente."
+    },
+    {
+      "id": "NFR-3415",
+      "title": "Performance: Las operaciones del agente no son más lentas que sus equivalentes manuales en un orden de magnitud. Umbrales confirmados por el",
+      "level": "partial",
+      "evidence": "3/3 TCs en verde en verify-run (TC-AGT-262e … TC-AGT-268f). Trabajo constante: mismas sentencias SQL con un libro de 12 nodos que con uno de 60 nodos y 24 periodos; las lecturas no escriben. DEUDA DECLARADA: El criterio pide «el resumen y el registro responden en ≤ 1000 ms». No hay ninguna prueba que mida tiempo: TC-AGT-262e, 267h y 268f afirman TRABAJO —el mismo número de sentencias SQL con un libro de 12 nodos que con uno de 60 nodos y 24 periodos, y cero escrit"
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-3403",
+      "substitution": "ADR-06 se implementa mirando el VALOR de x-forwarded-for —una sola dirección, declarada en LEDGER_AGENT_SOURCES; ninguna es interna por defecto, tampoco el loopback— y no su PRESENCIA, como dice 02_SYSTEM_DESIGN.md. Además, todo método que una ruta no ofrece pasa también por la envoltura y responde 404 (el diseño decía 404/405). El documento de diseño conserva el texto de la regla vieja y la tabla de rechazos que la describe",
+      "reason": "El servidor de Next añade x-forwarded-for y x-forwarded-host a toda petición, así que la regla escrita en el diseño rechazaba todas las peticiones en un servidor real (medido en dev el 2026-10-13). La revisión adversarial mostró después que dar el loopback por interno abría la puerta con un segundo proxy local, y que Next contestaba OPTIONS y 405 sin pasar por la envoltura, delatando rutas con la puerta apagada. La intención de ADR-06, NFR-3411 y FR-3405 no cambia; TC-AGT-253e, 246f y 247h la cubren. Corregir el documento exige re-aprobar la fase 2, que invalida en cascada las fases 3 y 4. Variable que el diseño no nombra: LEDGER_AGENT_SOURCES.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3411",
+      "substitution": "La regla de «solo red interna» mantiene la puerta fuera del frente público, pero NO autentica a un cliente que conecta directo al puerto de la app: ese elige la cabecera x-forwarded-for, así que para él la única barrera es el token. Y que `tailscale serve` reescribe esa cabecera con la dirección del cliente real se comprueba contra producción con scripts/verificar-prod.sh (comprobación 7: URL pública, URL pública con la cabecera falsificada y puerto publicado en el host), no dentro de la suite",
+      "reason": "Un route handler de Next no ve la dirección del socket: solo la cabecera, que Next rellena únicamente si el cliente no la trajo. La separación de verdad es un listener o un sidecar que sirva solo /api/agent en la red del agente, y queda fuera de esta entrega. Mitigaciones hechas: ningún origen por defecto, bloques de /16 o más estrechos, la guía pide la IP fija del agente y no la subred, y la comprobación 7 falla si por cualquiera de los tres caminos la puerta contesta algo distinto de 404. Derivado, también sin resolver: por la red Docker compartida el contenedor del agente alcanza TODA la app en HTTP plano (el inicio de sesión incluido), no solo la puerta.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3406",
+      "substitution": "El cubo de intentos con token inválido es uno solo, global, y no uno por dirección de origen como dice el criterio de aceptación",
+      "reason": "Un route handler de Next no ve la IP del socket, y una petición que trae la dirección de otro origen en x-forwarded-for se rechaza antes de mirar el token (ADR-06), así que no hay una dirección fiable por la que separar. El cubo solo se consulta cuando el token NO resolvió: agotarlo no deja fuera a un token válido (TC-AGT-063f).",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3409",
+      "substitution": "El «reinicio del servidor» de TC-AGT-095h y TC-AGT-137h se hace en proceso: se cierra el cliente de base de la app y se recargan todos sus módulos, en vez de matar y volver a arrancar el proceso",
+      "reason": "El arnés de integración llama a las rutas en proceso y no tiene un servidor que reiniciar. Lo que el caso afirma —que la referencia y la marca viven en Postgres y no en memoria— queda probado igual: tras el descarte lo único que sobrevive es la base.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3402",
+      "substitution": "TC-AGT-024e comprueba la regla de «último uso como mucho una vez por minuto» contra Postgres real, atrasando la marca 61 segundos por SQL, en vez de con un reloj inyectado y un contador de UPDATE",
+      "reason": "La regla vive en la propia sentencia SQL (last_used_at < now() - 60 s), que es lo que la hace correcta con varias conexiones a la vez; no hay un reloj de la aplicación que inyectar. La prueba afirma el mismo observable: cinco resoluciones seguidas dejan una sola marca y la sexta, pasado el minuto, la mueve.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3414",
+      "substitution": "El caso de 375 px (TC-AGT-141e) se prueba en la pantalla de la categoría del teléfono, y compara la fila del agente con una fila manual en vez de exigir scrollWidth ≤ clientWidth en la fila",
+      "reason": "A 375 px el Detalle de celda del escritorio no existe: la lista de movimientos del teléfono es LeafScreen, y la etiqueta se añadió también ahí. Esa fila ya medía 8 px más de scrollWidth que de ancho antes de esta feature, por el margen negativo del botón del lápiz; la prueba exige que la etiqueta no la ensanche ni saque nada de la pantalla.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3403",
+      "substitution": "TC-AGT-034f y TC-AGT-247h, planeados como integración y unitaria, se ejecutan como e2e contra el build de producción (tests/e2e/tony-ledger.spec.ts)",
+      "reason": "Que una ruta o un método inexistentes respondan 404/405 y que todo handler exija token solo se puede observar pasando por el enrutador de Next; en proceso no hay enrutador. Es una prueba más fuerte que la planeada, no una más débil.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3415",
+      "substitution": "El criterio pide «el resumen y el registro responden en ≤ 1000 ms». No hay ninguna prueba que mida tiempo: TC-AGT-262e, 267h y 268f afirman TRABAJO —el mismo número de sentencias SQL con un libro de 12 nodos que con uno de 60 nodos y 24 periodos, y cero escrituras en las lecturas—",
+      "reason": "Un tiempo de reloj afirmado dentro de la suite mide al arnés y cae bajo instrumentación de cobertura con el código sano; es la regla del propio plan de pruebas. El conteo detecta lo que el umbral quería detectar (una consulta por nodo o por periodo). Lo que queda sin medir es el coste de cómputo con el libro real: cada petición carga el libro entero, con todos sus movimientos históricos.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3409",
+      "substitution": "El reintento se compara contra el movimiento TAL COMO ESTÁ AHORA, no contra el cuerpo que lo creó: si el dueño lo corrigió en la app, reintentar el cuerpo original responde 409 reference_conflict (con el movimiento vigente en el detalle) en vez de 200; y si el dueño lo borró, la referencia queda libre y un reintento tardío lo crea de nuevo",
+      "reason": "Distinguirlo exige guardar con la marca una huella del cuerpo original y una lápida de las referencias borradas: una columna y una tabla más que el diseño no contempla. No se duplica dinero en ningún caso mientras el movimiento exista. El contrato (docs/agent-api.md) le dice al agente cómo leer ese 409 y que no reintente lo que el dueño ya pudo revisar.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3414",
+      "substitution": "TC-AGT-212f no afirma la cifra del Balance (su plan pedía «el Balance muestra el mismo Disponible que GET /api/v1/ledger permite derivar») y TC-AGT-200h no afirma que la cookie de sesión conserve nombre y atributos",
+      "reason": "212f comprueba que en grilla, Detalle y teléfono no aparece ninguna etiqueta y que la celda vale lo sembrado; la igualdad de cifras con y sin marca la prueban TC-AGT-211e (dominio) y TC-AGT-156e (resumen contra el rango de la pantalla). La cookie la gestiona Better Auth, que esta feature no toca, y la cubren las pruebas de autenticación existentes.",
+      "effort_to_fix": "low"
+    }
+  ]
+}
