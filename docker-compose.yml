@@ -47,6 +47,8 @@ services:
       # que REEMPLACE X-Forwarded-For (ver DEPLOYMENT.md). Con true y un proxy que lo anexa, el
       # anti-fuerza-bruta se esquiva mandando el header a mano. Con `tailscale serve` delante, false.
       LEDGER_TRUST_PROXY: ${LEDGER_TRUST_PROXY:-false}
+      # Puerta para agentes (/api/agent/v1). Apagada salvo que valga exactamente `on`.
+      LEDGER_AGENT_API: ${LEDGER_AGENT_API:-}
     ports:
       # Solo loopback: la única puerta desde fuera es el frente TLS del host (hoy `tailscale serve`).
       - "127.0.0.1:3000:3000"

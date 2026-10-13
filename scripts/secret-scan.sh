@@ -50,6 +50,8 @@ CLAVES+='|(xox[baprs]-[0-9A-Za-z-]{10,})'
 CLAVES+='|(gh[pousr]_[A-Za-z0-9]{36,})|(github_pat_[A-Za-z0-9_]{22,})'
 CLAVES+='|(AIza[0-9A-Za-z_-]{35})'
 CLAVES+='|(sk_live_[0-9A-Za-z]{24,})'
+# Token de la puerta para agentes (feature tony-ledger, NFR-3410): mismo formato que TOKEN_PATTERN.
+CLAVES+='|(tla_[A-Za-z0-9_-]{43})'
 CLAVES+='|(x(keysib|smtpsib)-[a-f0-9]{64}-[A-Za-z0-9]{16})'
 CLAVES+='|(eyJ[A-Za-z0-9_-]{15,}\.eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,})'
 # Un secreto asignado por su nombre, con o sin comillas (un .env no las lleva).
@@ -69,9 +71,10 @@ PERMITIDO+='|://(ledger:ledger|build:build|u:p|x:x|test:test|ledger:secreto)@'  
 PERMITIDO+='|://[^/[:space:]:@]+:\$'
 PERMITIDO+='|gitleaks:allow'
 
-hits=$(listar | grep -zvE "$EXCLUIR" | xargs -0 grep -nIsE -- "$CLAVES" 2>/dev/null | grep -vE "$PERMITIDO")
+hits=$(listar | grep -zvE "$EXCLUIR" | xargs -0 grep -nIsHE -- "$CLAVES" 2>/dev/null | grep -vE "$PERMITIDO")
 if [ -n "$hits" ]; then
-  # Se imprime dónde, nunca el valor: la salida de un gate acaba en logs del CI.
+  # Se imprime dónde, nunca el valor: la salida de un gate acaba en logs del CI. El `-H` de arriba
+  # es lo que lo garantiza con UN solo archivo: sin él grep omite el nombre y aquí salía el secreto.
   printf '%s\n' "$hits" | cut -d: -f1,2 | sed 's/^/[secret-scan] posible secreto en /'
   echo "[secret-scan] se detectaron posibles secretos hardcodeados (patrones)."
   exit 1

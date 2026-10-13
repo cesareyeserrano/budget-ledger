@@ -1,0 +1,1160 @@
+{
+  "project_name": "Ledger (T-Ledger) — feature tony-ledger",
+  "project_summary": "T-Ledger gana una puerta propia para agentes, para que la copia del agente Tony Ledger (perfil Hermes `tledger`, que se llamará Agent-L) lleve su libro en la app en vez de en su archivo y su Excel. Hoy son dos libros desconectados: el agente captura bien (correo del banco, Telegram, pendientes, cuentas por pagar, 4x1000) pero escribe en un archivo propio, y T-Ledger tiene presupuesto, bolsillos y Balance pero se alimenta a mano. Diseño aprobado por el usuario el 2026-10-10: el agente NO escribe directo en la base ni usa la API del navegador; entra por una superficie pequeña del mismo servidor, hecha a su medida, que por dentro llama a las mismas funciones del dominio y del repositorio que la app, con un token propio revocable que se gestiona por comando en el servidor. El agente lee el árbol de la app (no tiene catálogo propio y no crea nada en él), registra, corrige y deshace movimientos con las mismas reglas que el registro manual, y consulta un resumen calculado en el servidor. North Star KPI: un movimiento que el usuario confirma en Telegram queda en la app en la categoría y el periodo correctos, con la misma cifra y el mismo efecto en Ejecutado y Balance que si se hubiera registrado a mano, sin que el usuario abra la app. JTBD: llevar un solo libro —el de la app— sin registrar dos veces, capturando por Telegram y por el correo del banco. Guardrail: ninguna escritura del agente deja el libro en un estado que el registro manual habría rechazado, y la API del navegador conserva exactamente su comportamiento y su superficie de ataque.",
+  "technology_preferences": [
+    "Reutilizar las funciones puras del dominio (`src/domain/rollup.ts`, `balance.ts`, `reserve.ts`, `adjust.ts`) y el repositorio (`src/server/data/ledgerRepo.ts`); no reimplementar reglas",
+    "Migración aditiva de Drizzle; los datos existentes siguen válidos sin reescritura",
+    "Sin dependencias nuevas de autenticación si la biblioteca estándar de Node basta para generar y comparar el token"
+  ],
+  "constraints": [
+    "El repositorio es público: ningún token, clave, correo, cuenta bancaria ni cifra real en el código, las pruebas o la documentación",
+    "El código del agente (perfil Hermes) vive en un repositorio aparte y privado; este repositorio entrega la superficie del servidor y su contrato",
+    "El perfil original `ledger` de Hermes no se toca",
+    "Todo se prueba en dev (:3100, admin@admin.com) antes de producción",
+    "El agente se llama Agent-L (nombre fijado por el usuario el 2026-10-13); en la app la etiqueta visible no depende de ese nombre fijo: sale del nombre del token"
+  ],
+  "no_go_zone": [
+    "Migrar a T-Ledger los movimientos del libro del Tony original — en producción se toma lo que llegue desde el arranque (decisión del usuario, 2026-10-10)",
+    "Que el agente cree, renombre, mueva o borre categorías, grupos o bolsillos — el árbol se administra a mano en la app para que nada se cree sin control (decisión del usuario, 2026-10-10)",
+    "Que el agente cierre o reabra meses, cambie ciclos, saldo inicial, presupuesto o preferencias — la superficie del agente no ofrece esas operaciones",
+    "Que el agente escriba directo en la base de datos o use la API del navegador — se descartó por seguridad y por no duplicar reglas (diseño aprobado el 2026-10-10)",
+    "Una pantalla en la app para gestionar tokens — se hace por comando en el servidor; la pantalla se añade después si hace falta",
+    "Una bandeja de propuestas del agente para aprobar en la app — el usuario ya confirma en Telegram; sería confirmar dos veces",
+    "Pasar a T-Ledger los pendientes, lo ignorado, las cuentas por pagar, los correos procesados y los recordatorios del agente — siguen en el agente",
+    "El código del perfil Hermes (ayudante, vigilante de correo, 4x1000, instrucciones), su re-igualación con el original y su instalación — viven en el repositorio aparte y en la Pi",
+    "El relevo del vigilante de correo del original a la copia — paso de operación posterior a esta entrega",
+    "Un chat dentro de la app, WhatsApp o un servidor MCP — el canal es Telegram por Hermes",
+    "Tokens con permisos a medida, con caducidad configurable o compartidos entre cuentas — un solo alcance fijo: la superficie del agente",
+    "Corregir el monto o los extremos de una operación de bolsillo ya registrada — se deshace y se registra de nuevo",
+    "Un permiso para que el agente corrija o deshaga lo que el dueño registró a mano — para empezar no puede nunca (decisión del usuario, 2026-10-13); se añadiría después solo si hace falta"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de su cuenta de T-Ledger), que conversa con el agente por Telegram y sigue usando la app en escritorio y móvil",
+      "tech_level": "mid",
+      "goal": "Llevar un solo libro: que lo que confirma en Telegram quede en la app con las mismas cifras y reglas, y poder ver y deshacer lo que el agente escribió",
+      "pain_point": "Hoy registra dos veces o deja un libro atrasado, y las cifras que le da el agente pueden no coincidir con las de la app"
+    },
+    {
+      "role": "Agent-L, el ayudante determinista del perfil Hermes `tledger` (cliente técnico sin navegador que actúa en nombre del dueño)",
+      "tech_level": "high",
+      "goal": "Registrar, corregir, deshacer y consultar movimientos con un contrato estable, pudiendo reintentar sin duplicar y recibiendo el motivo exacto de cada rechazo",
+      "pain_point": "T-Ledger solo acepta la sesión del navegador, exige una categoría del árbol que el agente no conoce, no guarda de dónde vino un movimiento y calcula las cifras solo en el navegador"
+    },
+    {
+      "role": "El dueño como operador del servidor (Ultron, por SSH)",
+      "tech_level": "high",
+      "goal": "Crear el acceso del agente, ver si se está usando y cortarlo de inmediato si algo sale mal",
+      "pain_point": "No existe ningún acceso para programas; la única credencial es su propia contraseña, que no debe vivir en el perfil del agente"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-3401",
+      "title": "Crear un token de agente por comando en el servidor",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando el operador ejecuta en el servidor el comando de crear token indicando la cuenta (correo) y un nombre para el token, el sistema genera un token al azar, lo muestra una sola vez en la salida del comando y guarda en la base solo su hash junto con el nombre, la cuenta y la fecha de creación. No existe ninguna ruta HTTP que cree tokens.",
+      "acceptance_criteria": [
+        "Al crear un token para una cuenta existente, el comando imprime el token completo una vez y termina con código 0; la base guarda un registro con nombre, cuenta, fecha de creación y un hash, y en ninguna columna aparece el token en claro",
+        "El token tiene al menos 256 bits de entropía y un prefijo fijo reconocible que permite identificarlo como token de agente de T-Ledger",
+        "Crear un token para un correo que no existe termina con código distinto de 0, no crea ningún registro y no revela si existen otras cuentas (negativo)",
+        "Crear un token sin nombre o con un nombre de más de 60 caracteres se rechaza con código distinto de 0 y no crea nada (negativo)",
+        "Una cuenta puede tener varios tokens activos a la vez, cada uno con su nombre (edge)"
+      ]
+    },
+    {
+      "id": "FR-3402",
+      "title": "Listar y revocar tokens de agente por comando; un token revocado deja de funcionar de inmediato",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando el operador ejecuta el comando de listar, el sistema muestra los tokens de una cuenta con nombre, identificador, fecha de creación, fecha del último uso y estado, sin mostrar jamás el token ni su hash. Cuando ejecuta el comando de revocar sobre un identificador, el token queda revocado y la siguiente petición que lo use se rechaza.",
+      "acceptance_criteria": [
+        "El listado muestra por token: identificador, nombre, creado, último uso (o «nunca») y estado activo/revocado; no muestra el token ni el hash",
+        "Tras una petición aceptada con un token, su «último uso» en el listado refleja ese momento con precisión de al menos un minuto",
+        "Tras revocar un token, la primera petición siguiente con él recibe 401 y no devuelve ni cambia ningún dato, sin reiniciar el servidor",
+        "Revocar un identificador inexistente o ya revocado termina con código distinto de 0 y un mensaje que lo dice, sin cambiar nada (negativo)",
+        "Revocar un token no afecta a los demás tokens de la cuenta ni a la sesión del navegador (edge)"
+      ]
+    },
+    {
+      "id": "FR-3403",
+      "title": "La superficie del agente autentica por token y solo alcanza la cuenta que lo creó",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando llega una petición a cualquier operación de la superficie del agente, el sistema exige un token de agente válido en la cabecera de autorización, sin cookie de sesión y sin cabecera Origin, y resuelve la cuenta SOLO a partir del token. Todas las operaciones leen y escriben únicamente datos de esa cuenta; ningún parámetro de la petición puede señalar otra.",
+      "acceptance_criteria": [
+        "Una petición con un token válido, sin cookie y sin Origin, se atiende y opera sobre la cuenta dueña del token",
+        "Una petición sin token, con un token mal formado, inexistente o revocado recibe 401 con el mismo cuerpo en los cuatro casos y no devuelve ningún dato (negativo)",
+        "Con el token de la cuenta A, ninguna operación devuelve ni modifica datos de la cuenta B, aunque la petición incluya identificadores de movimientos, nodos o un ownerId de B: los identificadores ajenos se contestan como inexistentes (negativo)",
+        "Una cookie de sesión válida SIN token no da acceso a la superficie del agente: 401 (edge)",
+        "La superficie del agente ofrece exactamente estas operaciones y ninguna más: leer el árbol, registrar movimiento, corregir movimiento, deshacer movimiento, leer movimientos de un periodo, resumen de un periodo y periodo de una fecha; cualquier otra ruta o método bajo ella recibe 404 o 405"
+      ]
+    },
+    {
+      "id": "FR-3404",
+      "title": "La API del navegador no acepta el token de agente",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando una petición a la API del navegador (`/api/v1/*` y `/api/auth/*`) trae un token de agente y no trae sesión, el sistema la trata exactamente como una petición sin autenticar. El token no abre ninguna ruta fuera de la superficie del agente.",
+      "acceptance_criteria": [
+        "Con un token válido y sin sesión, GET /api/v1/ledger y GET /api/v1/movements reciben 401 y cero datos (negativo)",
+        "Con un token válido y sin sesión, PUT /api/v1/ledger, POST /api/v1/movements, las rutas de cierre, de ciclos y de preferencias reciben el mismo rechazo que sin token y la base queda idéntica (negativo)",
+        "Con sesión válida y además un token en la cabecera, la API del navegador responde igual que solo con sesión (edge)"
+      ]
+    },
+    {
+      "id": "FR-3405",
+      "title": "Interruptor de la superficie del agente",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando el ajuste del servidor que habilita la superficie del agente no está activado, el sistema contesta a toda petición a esa superficie como si no existiera, traiga o no un token válido. El valor por defecto es apagado.",
+      "acceptance_criteria": [
+        "Con el ajuste ausente o apagado, toda petición a la superficie del agente recibe 404, con y sin token válido, y no se registra uso del token",
+        "Con el ajuste activado, la superficie responde según FR-3403",
+        "Con la superficie apagada, la app del navegador y GET /health funcionan igual (edge)",
+        "Un valor del ajuste distinto del valor exacto de activación se trata como apagado (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3406",
+      "title": "Tope de peticiones por token",
+      "priority": "MUST",
+      "type": "security",
+      "description": "Cuando un token supera el número de peticiones permitido en la ventana de tiempo, el sistema rechaza las siguientes con 429 hasta que la ventana lo permita. Las escrituras tienen un tope más bajo que las lecturas. Valores confirmados por el usuario el 2026-10-13: 30 escrituras y 120 lecturas por minuto por token.",
+      "acceptance_criteria": [
+        "La escritura número 31 de un mismo token dentro de 60 s recibe 429 y no cambia el libro; las 30 primeras se atienden",
+        "La lectura número 121 de un mismo token dentro de 60 s recibe 429; las 120 primeras se atienden",
+        "El tope de un token no consume el de otro token ni afecta a la sesión del navegador (edge)",
+        "Pasada la ventana, el mismo token vuelve a ser atendido sin intervención (edge)",
+        "Las peticiones rechazadas con 401 por token inválido también están acotadas por dirección de origen: más de 20 en 60 s reciben 429 (negativo, anti fuerza bruta)"
+      ]
+    },
+    {
+      "id": "FR-3407",
+      "title": "Leer el árbol vigente de la cuenta",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "Cuando el agente pide el árbol, el sistema devuelve los nodos vigentes de la cuenta —tipos, grupos, categorías, subcategorías y bolsillos— con identificador, nombre, tipo, nivel, padre y si es hoja, para que el agente clasifique directamente contra él. El agente no tiene catálogo propio. La superficie no ofrece ninguna operación que cree, renombre, mueva o borre nodos.",
+      "acceptance_criteria": [
+        "La respuesta contiene todos los nodos de la cuenta y solo los suyos; cada uno con id, nombre, tipo (gasto/ingreso/reserva), nivel, id del padre y un indicador de hoja coherente con el árbol que muestra la app",
+        "Un nodo creado o renombrado en la app aparece con su estado nuevo en la siguiente lectura del árbol, sin reiniciar nada (edge)",
+        "Una cuenta que aún no guardó su libro recibe 404 `not_found`, no un error de servidor (negativo)",
+        "Ninguna petición a la superficie del agente con método de escritura sobre el árbol es atendida: 404 o 405 y el árbol queda idéntico (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3408",
+      "title": "Registrar un gasto o un ingreso con las mismas reglas que el registro manual",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente registra un gasto o un ingreso indicando tipo, hoja destino, monto, fecha, nota opcional y referencia de origen, el sistema lo valida y lo aplica con la misma mutación del dominio que el registro manual (misma actualización del Ejecutado, mismos guardias de cierre, periodo y reglas de reserva) y devuelve el movimiento creado con su periodo. El periodo lo DERIVA el servidor de la fecha con el calendario de la cuenta; el agente no lo envía. Si se rechaza, la respuesta trae un código de motivo estable y el libro no cambia.",
+      "acceptance_criteria": [
+        "Un gasto de 50000 sobre una hoja de gasto existente, con fecha de hoy, devuelve 201 con el movimiento; el Ejecutado de esa hoja en el periodo de la fecha sube exactamente 50000 y los totales de sus ancestros también",
+        "Un ingreso registrado por el agente produce en Ejecutado, Balance y Disponible exactamente el mismo estado que el mismo ingreso registrado desde la app sobre un libro idéntico",
+        "En una cuenta con ciclos, el movimiento queda en el periodo que el calendario de la cuenta asigna a su fecha, igual que en el registro manual (edge)",
+        "Hoja inexistente, que no es hoja o que no es del tipo indicado → 422 `invalid_target` y el libro idéntico (negativo)",
+        "Fecha que cae en un periodo cerrado → 422 `closed_period_violation` y el libro idéntico (negativo)",
+        "Monto 0, negativo, no entero o por encima del tope del dominio, fecha mal formada o nota de más de 280 caracteres → 422 `invalid_payload` y el libro idéntico (negativo)",
+        "Un registro que dejaría algún mes peor según las reglas de reserva → 422 `domain_rule_violation` con el detalle de la regla, el periodo y el límite, igual que en la API del navegador (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3409",
+      "title": "Referencia de origen: registrar dos veces lo mismo deja un solo movimiento",
+      "priority": "MUST",
+      "type": "persistence",
+      "description": "Cuando el agente registra un movimiento, envía una referencia de origen obligatoria (texto opaco que él decide, p. ej. su número de movimiento o el identificador del banco más la cuenta). El sistema la guarda con el movimiento y garantiza que sea única por cuenta: si llega otro registro con una referencia ya usada por un movimiento vigente, no crea nada y devuelve el movimiento existente.",
+      "acceptance_criteria": [
+        "Dos registros con la misma referencia y el mismo contenido: el primero devuelve 201, el segundo 200 con el mismo id de movimiento, y en el libro hay un solo movimiento y un solo incremento del Ejecutado",
+        "Dos registros simultáneos con la misma referencia dejan un solo movimiento (edge, concurrencia)",
+        "Un registro con una referencia ya usada pero con monto, hoja o fecha distintos → 409 `reference_conflict` con el movimiento existente en la respuesta, y el libro no cambia (negativo)",
+        "La misma referencia en dos cuentas distintas no choca (edge)",
+        "Un registro sin referencia, con referencia vacía o de más de 128 caracteres → 422 `invalid_payload` (negativo)",
+        "La referencia sobrevive a un reinicio del servidor y aparece en las lecturas de movimientos del agente",
+        "Tras deshacer un movimiento, su referencia queda libre y puede registrarse de nuevo (edge)"
+      ]
+    },
+    {
+      "id": "FR-3410",
+      "title": "Registrar una operación de bolsillo: reservar, sacar o mover",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente registra una operación de bolsillo indicando origen, destino, monto, fecha, nota opcional y referencia de origen, el sistema la aplica con la misma operación De→A del dominio que usa la app. Equivalencia fijada por el usuario: la cuenta principal del agente es el Disponible de la app y sus alcancías son el saldo reservado; de Disponible a un bolsillo = reservar, de un bolsillo a Disponible = sacar, de un bolsillo a otro = mover. La operación exige siempre un bolsillo concreto del árbol; elegirlo es responsabilidad del agente.",
+      "acceptance_criteria": [
+        "Reservar 200000 de Disponible a un bolsillo existente devuelve 201; el aporte del bolsillo en el periodo sube 200000, su saldo derivado sube 200000 y el Disponible baja 200000, igual que la misma operación hecha en la app",
+        "Sacar 50000 de un bolsillo con saldo 200000 hacia Disponible devuelve 201 y deja el saldo del bolsillo en 150000",
+        "Mover 30000 de un bolsillo a otro deja el saldo reservado total sin cambio y cada bolsillo con su saldo nuevo (edge)",
+        "Sacar más de lo que el bolsillo tiene → 422 `domain_rule_violation` con regla `piso`, el bolsillo y el límite; el libro idéntico (negativo)",
+        "Reservar por encima de lo que el mes admite → 422 `domain_rule_violation` con regla `techo` y el límite; el libro idéntico (negativo)",
+        "Origen o destino que no es un bolsillo ni el Disponible, origen igual a destino, o los dos extremos Disponible → 422 `invalid_target` (negativo)",
+        "La idempotencia por referencia de origen (FR-3409) aplica igual a las operaciones de bolsillo"
+      ]
+    },
+    {
+      "id": "FR-3411",
+      "title": "Corregir un gasto o ingreso registrado por un agente",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente corrige un movimiento de gasto o ingreso identificándolo por su id o por su referencia de origen, el sistema aplica el cambio de monto, fecha, nota u hoja con la misma mutación del dominio que la edición manual. El agente solo puede corregir movimientos registrados por un agente de la misma cuenta. Decisión del usuario del 2026-10-13: para empezar el agente NO puede tocar nunca lo que el dueño registró a mano; un permiso opcional para ampliarlo queda fuera de esta entrega.",
+      "acceptance_criteria": [
+        "Cambiar la hoja de un gasto de 50000 registrado por el agente baja 50000 el Ejecutado de la hoja vieja y sube 50000 el de la nueva en su periodo",
+        "Cambiar el monto de 50000 a 45000 deja el Ejecutado de la hoja 5000 por debajo; cambiar la fecha a otro periodo abierto mueve el monto al periodo nuevo (edge)",
+        "Corregir un movimiento registrado a mano en la app → 404 `not_found` y el movimiento queda idéntico (negativo)",
+        "Corregir un movimiento de un periodo cerrado, o moverlo a uno cerrado → 422 `closed_period_violation` y nada cambia (negativo)",
+        "Corregir un id o referencia inexistente o de otra cuenta → 404 `not_found`, indistinguible entre los dos casos (negativo)",
+        "Corregir una operación de bolsillo por esta vía → 422 `unsupported_type` (negativo; se deshace y se registra de nuevo)",
+        "Un cuerpo sin campos o con campos desconocidos → 422 `invalid_payload` (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3412",
+      "title": "Deshacer un movimiento registrado por un agente, incluidas las operaciones de bolsillo",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente deshace un movimiento identificándolo por su id o por su referencia de origen, el sistema lo elimina con la misma mutación del dominio que el borrado manual: un gasto o ingreso deja de contar en el Ejecutado; una operación de bolsillo se revierte con la función de dominio que ya usa la app para quitar un retiro o un aporte. Hoy borrar una operación de bolsillo por la vía de los movimientos se rechaza siempre; esta superficie lo permite, con las reglas de reserva vigentes. El agente solo puede deshacer movimientos registrados por un agente de la misma cuenta.",
+      "acceptance_criteria": [
+        "Deshacer un gasto de 50000 registrado por el agente baja 50000 el Ejecutado de su hoja en su periodo y el movimiento deja de aparecer en las lecturas",
+        "Deshacer una reserva de 200000 registrada por el agente devuelve el bolsillo y el Disponible a los valores previos a la reserva",
+        "Deshacer una reserva cuyo saldo ya se sacó en parte (dejaría el bolsillo en negativo) → 422 `domain_rule_violation` con regla `piso` y nada cambia (negativo)",
+        "Deshacer un movimiento registrado a mano en la app → 404 `not_found` y el movimiento sigue ahí (negativo)",
+        "Deshacer un movimiento de un periodo cerrado → 422 `closed_period_violation` (negativo)",
+        "Deshacer dos veces el mismo movimiento: la segunda recibe 404 y el libro no cambia otra vez (edge)"
+      ]
+    },
+    {
+      "id": "FR-3413",
+      "title": "Cada movimiento del agente queda marcado y la marca sobrevive a los guardados de la app",
+      "priority": "MUST",
+      "type": "persistence",
+      "description": "Cuando el agente registra un movimiento, el sistema guarda con él quién lo registró (el token: su identificador y su nombre en ese momento) y su referencia de origen. Cuando después el navegador guarda el libro completo o edita ese movimiento, la marca y la referencia se conservan. Los movimientos registrados a mano no llevan marca.",
+      "acceptance_criteria": [
+        "Un movimiento registrado por el agente tiene en la base la marca del token que lo registró y su referencia; uno registrado desde la app tiene ambas vacías",
+        "Tras registrar el agente un movimiento, un guardado completo del libro desde el navegador (que no toca ese movimiento) lo conserva con su marca y su referencia intactas",
+        "Tras editar el dueño en la app el monto o la nota de un movimiento del agente, la marca y la referencia siguen iguales (edge)",
+        "Un guardado desde el navegador no puede poner ni cambiar la marca de agente en un movimiento: si el cuerpo la trae distinta de la guardada, el servidor conserva la guardada (negativo)",
+        "Revocar el token no borra la marca de los movimientos que registró (edge)"
+      ]
+    },
+    {
+      "id": "FR-3414",
+      "title": "La app muestra qué movimientos registró el agente",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "Cuando el dueño abre el Detalle de una celda en la app, cada movimiento registrado por un agente muestra una etiqueta de texto con el nombre del token que lo registró, para que pueda ver qué escribió el agente y deshacerlo con las acciones que la app ya tiene. Los movimientos manuales se ven igual que hoy.",
+      "acceptance_criteria": [
+        "En el Detalle, un movimiento registrado con el token llamado «Agent-L» muestra la etiqueta de texto «Agent-L» junto a su fila; un movimiento manual no muestra ninguna etiqueta",
+        "La etiqueta es texto (no solo color o icono), con contraste ≥ 4.5:1 en tema claro y oscuro, y no provoca desbordamiento horizontal de la fila a 375 px ni a 1280 px de ancho",
+        "Un nombre de token de 60 caracteres se trunca con elipsis sin romper la fila y el nombre completo queda accesible por título o texto accesible (edge)",
+        "Un movimiento del agente se puede editar y borrar desde la app con las mismas acciones y reglas que uno manual (edge)",
+        "Con un libro sin ningún movimiento de agente, el Detalle se ve y se comporta igual que antes de la feature (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3415",
+      "title": "Resumen de un periodo calculado en el servidor con las funciones de la pantalla",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "Cuando el agente pide el resumen de un periodo, el sistema lo calcula en el servidor con las mismas funciones del dominio que usa la pantalla y devuelve: por cada nodo del árbol (hoja, categoría, grupo y tipo) lo presupuestado, lo ejecutado y lo restante; los totales de ingresos y gastos; el Disponible y el saldo reservado del Balance; y el saldo de cada bolsillo. Si no se indica periodo, usa el periodo vigente según el calendario de la cuenta.",
+      "acceptance_criteria": [
+        "Para el libro de pruebas de admin@admin.com y un periodo dado, cada cifra del resumen (presupuestado, ejecutado y restante por nodo; totales; Disponible; saldo reservado; saldo por bolsillo) es idéntica, peso a peso, a la que muestra la app en ese periodo",
+        "El resumen se calcula con las funciones del dominio existentes (`rollupTable`/`typeTotals`, `computeBalanceSeries`, saldo derivado de reservas) y no con una reimplementación: una prueba compara su salida contra la de esas funciones sobre el mismo estado",
+        "Sin parámetro de periodo, responde con el periodo vigente de la cuenta e indica en la respuesta cuál usó y su rango de fechas (edge)",
+        "En una cuenta con ciclos, el resumen de un periodo corresponde al ciclo, no al mes calendario (edge)",
+        "Un periodo mal formado → 400 `invalid_period`; un periodo válido sin datos → 200 con las cifras en 0, no un error (negativo)",
+        "Una cuenta que aún no guardó su libro → 404 `not_found` (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3416",
+      "title": "Leer los movimientos de un periodo y ubicar uno por su referencia",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "Cuando el agente pide los movimientos de un periodo, el sistema devuelve los de la cuenta en ese periodo —manuales y de agente— con id, tipo, hoja y su nombre, monto, fecha, nota, extremos De→A si es de bolsillo, referencia de origen y marca de agente. Cuando pide un movimiento por su referencia de origen, devuelve ese movimiento. Sirve para contestar «en qué se fue» y para que el agente ubique lo que registró antes de corregirlo.",
+      "acceptance_criteria": [
+        "La lista de un periodo contiene exactamente los movimientos que la app muestra en ese periodo, con los mismos montos y fechas, e indica cuáles registró un agente",
+        "La búsqueda por una referencia existente devuelve ese único movimiento; por una inexistente o de otra cuenta → 404 `not_found` (negativo)",
+        "Se puede filtrar la lista por hoja o por nodo padre y devuelve solo los movimientos de ese subárbol (edge)",
+        "Un periodo sin movimientos devuelve 200 con lista vacía; un periodo mal formado → 400 `invalid_period` (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3417",
+      "title": "Decir a qué periodo pertenece una fecha",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente pregunta por una fecha, el sistema devuelve el periodo que el calendario de la cuenta le asigna (mes o ciclo), su rango de fechas y si está cerrado, para que el agente no lleve el ciclo por su cuenta ni intente registrar en un periodo cerrado.",
+      "acceptance_criteria": [
+        "En una cuenta por mes calendario, la fecha 2026-10-10 devuelve el periodo 2026-10 con rango 2026-10-01 a 2026-10-31",
+        "En una cuenta con ciclo que abre el día 21, la fecha 2026-10-10 devuelve el mismo periodo que la app asigna a un movimiento manual con esa fecha, con el rango del ciclo (edge)",
+        "Si el periodo está cerrado, la respuesta lo indica con un campo booleano (edge)",
+        "Una fecha mal formada o inexistente (2026-02-30) → 400 `invalid_date` (negativo)"
+      ]
+    },
+    {
+      "id": "FR-3418",
+      "title": "Lo que escribe el agente aparece en la app abierta y no se pierde por un guardado posterior",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el agente registra, corrige o deshace un movimiento, el sistema avanza la revisión del libro y publica el cambio por el mismo canal de sincronización que usan los dispositivos del dueño, de modo que una app abierta lo refleja sin recargar. Cuando una app abierta con una revisión anterior intenta guardar el libro completo, el sistema no deja que ese guardado elimine el movimiento del agente.",
+      "acceptance_criteria": [
+        "Con la app abierta en un periodo, un gasto registrado por el agente aparece en el Ejecutado y en el Detalle en ≤ 5 s sin recargar la página",
+        "Cada escritura aceptada del agente incrementa la revisión del libro exactamente en 1 y la respuesta la devuelve",
+        "Una app con el libro cargado ANTES de la escritura del agente que guarda el libro completo recibe el rechazo por revisión desactualizada que ya existe, y el movimiento del agente sigue en la base (negativo)",
+        "Una escritura rechazada del agente no cambia la revisión ni publica nada (negativo)",
+        "Dos escrituras del agente casi simultáneas quedan ambas registradas, con revisiones consecutivas (edge)"
+      ]
+    },
+    {
+      "id": "FR-3419",
+      "title": "Contrato documentado de la superficie del agente",
+      "priority": "SHOULD",
+      "type": "reporting",
+      "description": "Cuando un desarrollador del agente consulta la documentación del repositorio, encuentra el contrato de la superficie del agente: cada operación con su entrada, su salida, sus códigos de rechazo y qué significa cada cifra del resumen, más cómo crear, listar y revocar un token y cómo habilitar la superficie. Todos los ejemplos usan datos inventados.",
+      "acceptance_criteria": [
+        "Existe un documento en `docs/` que describe las siete operaciones de FR-3403 con ejemplo de petición y de respuesta, y la lista completa de códigos de rechazo de esta feature",
+        "El documento explica cada cifra del resumen (presupuestado, ejecutado, restante, Disponible, saldo reservado, saldo de bolsillo) con la misma definición que usa la app",
+        "El documento no contiene ningún token real, correo real, cuenta bancaria ni cifra tomada de datos reales: una prueba lo recorre buscando el prefijo de token y falla si encuentra uno con formato válido (negativo)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-3401",
+      "requirement_id": "FR-3401",
+      "as_a": "operador del servidor",
+      "i_want": "crear con un comando un acceso propio para el agente",
+      "so_that": "el agente entre a mi libro sin que mi contraseña viva en su perfil",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3401a",
+          "given": "la cuenta admin@admin.com existe",
+          "when": "ejecuto el comando de crear token con nombre «Agent-L»",
+          "then": "el comando imprime el token una vez, sale con 0 y la base guarda nombre, cuenta, fecha y hash, sin el token en claro"
+        },
+        {
+          "id": "AC-3401b",
+          "given": "ya existe un token «Agent-L» para la cuenta",
+          "when": "creo otro con nombre «pruebas»",
+          "then": "los dos quedan activos y cada uno funciona por separado"
+        },
+        {
+          "id": "AC-3401c",
+          "given": "no existe la cuenta nadie@example.com",
+          "when": "ejecuto el comando de crear token para ella",
+          "then": "sale con código distinto de 0 y no se crea ningún registro"
+        }
+      ]
+    },
+    {
+      "id": "US-3402",
+      "requirement_id": "FR-3402",
+      "as_a": "operador del servidor",
+      "i_want": "ver los accesos del agente y cortar cualquiera",
+      "so_that": "si el agente se porta mal quede fuera al instante sin tocar mi sesión",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3402a",
+          "given": "un token que acaba de registrar un movimiento",
+          "when": "ejecuto el comando de listar",
+          "then": "veo su nombre, identificador, fecha de creación, último uso de hace menos de un minuto y estado activo, sin el token ni el hash"
+        },
+        {
+          "id": "AC-3402b",
+          "given": "un token activo en uso",
+          "when": "lo revoco y el agente hace la siguiente petición",
+          "then": "recibe 401, no lee ni cambia nada, y no hizo falta reiniciar el servidor"
+        },
+        {
+          "id": "AC-3402c",
+          "given": "un identificador de token que no existe",
+          "when": "ejecuto el comando de revocar",
+          "then": "sale con código distinto de 0, lo dice en el mensaje y nada cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-3403",
+      "requirement_id": "FR-3403",
+      "as_a": "Agent-L",
+      "i_want": "identificarme con mi token, sin navegador ni cookie",
+      "so_that": "pueda operar el libro de mi dueño y solo el suyo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3403a",
+          "given": "un token válido de la cuenta A y la superficie habilitada",
+          "when": "pido el árbol sin cookie y sin Origin",
+          "then": "recibo 200 con el árbol de A"
+        },
+        {
+          "id": "AC-3403b",
+          "given": "dos cuentas A y B con movimientos",
+          "when": "con el token de A pido o intento deshacer un movimiento de B por su id",
+          "then": "recibo 404 y el movimiento de B queda idéntico"
+        },
+        {
+          "id": "AC-3403c",
+          "given": "la superficie habilitada",
+          "when": "llega una petición sin token, con token mal formado, inexistente o revocado",
+          "then": "las cuatro reciben 401 con el mismo cuerpo y cero datos"
+        }
+      ]
+    },
+    {
+      "id": "US-3404",
+      "requirement_id": "FR-3404",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el acceso del agente no abra nada de la app fuera de su puerta",
+      "so_that": "un agente comprometido no pueda guardar el libro entero, cerrar meses ni tocar mi árbol",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3404a",
+          "given": "un token válido y ninguna sesión",
+          "when": "se llama PUT /api/v1/ledger con un libro vacío",
+          "then": "se rechaza igual que sin autenticar y la base queda idéntica"
+        },
+        {
+          "id": "AC-3404b",
+          "given": "un token válido y ninguna sesión",
+          "when": "se llama GET /api/v1/ledger",
+          "then": "recibe 401 y cero datos"
+        },
+        {
+          "id": "AC-3404c",
+          "given": "una sesión válida y además un token en la cabecera",
+          "when": "se llama GET /api/v1/movements",
+          "then": "responde igual que solo con la sesión"
+        }
+      ]
+    },
+    {
+      "id": "US-3405",
+      "requirement_id": "FR-3405",
+      "as_a": "operador del servidor",
+      "i_want": "poder apagar la puerta del agente entera con un ajuste",
+      "so_that": "un despliegue que no usa agente no tenga esa superficie expuesta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3405a",
+          "given": "el ajuste de la superficie ausente",
+          "when": "llega una petición con un token válido",
+          "then": "recibe 404 y el último uso del token no cambia"
+        },
+        {
+          "id": "AC-3405b",
+          "given": "el ajuste activado",
+          "when": "llega la misma petición",
+          "then": "se atiende con 200"
+        },
+        {
+          "id": "AC-3405c",
+          "given": "la superficie apagada",
+          "when": "se abre la app y se consulta GET /health",
+          "then": "la app funciona y /health responde 200"
+        }
+      ]
+    },
+    {
+      "id": "US-3406",
+      "requirement_id": "FR-3406",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el agente tenga un freno de peticiones",
+      "so_that": "si entra en bucle no me llene el libro de movimientos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3406a",
+          "given": "un token que hizo 30 escrituras en los últimos 60 s",
+          "when": "intenta la escritura 31",
+          "then": "recibe 429 y el libro no cambia"
+        },
+        {
+          "id": "AC-3406b",
+          "given": "un token frenado por el tope",
+          "when": "pasa la ventana de 60 s",
+          "then": "su siguiente petición se atiende"
+        },
+        {
+          "id": "AC-3406c",
+          "given": "una dirección que envió 20 tokens inválidos en 60 s",
+          "when": "envía el 21",
+          "then": "recibe 429"
+        }
+      ]
+    },
+    {
+      "id": "US-3407",
+      "requirement_id": "FR-3407",
+      "as_a": "Agent-L",
+      "i_want": "leer el árbol de categorías y bolsillos de la app",
+      "so_that": "clasifique contra lo que el dueño ya creó, sin catálogo propio y sin crear nada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3407a",
+          "given": "el libro de pruebas de admin@admin.com",
+          "when": "pido el árbol",
+          "then": "recibo todos sus nodos con id, nombre, tipo, nivel, padre e indicador de hoja, iguales a los de la app"
+        },
+        {
+          "id": "AC-3407b",
+          "given": "el dueño renombra una categoría en la app",
+          "when": "vuelvo a pedir el árbol",
+          "then": "trae el nombre nuevo"
+        },
+        {
+          "id": "AC-3407c",
+          "given": "un token válido",
+          "when": "envío una petición de escritura sobre el árbol en la superficie del agente",
+          "then": "recibo 404 o 405 y el árbol queda idéntico"
+        }
+      ]
+    },
+    {
+      "id": "US-3408",
+      "requirement_id": "FR-3408",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el gasto que confirmo en Telegram quede en la app como si lo hubiera registrado yo",
+      "so_that": "lleve un solo libro sin registrar dos veces",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3408a",
+          "given": "una hoja de gasto «Mercado» con Ejecutado 100000 en el periodo vigente",
+          "when": "el agente registra un gasto de 50000 con fecha de hoy",
+          "then": "recibe 201 y el Ejecutado de «Mercado» queda en 150000, con sus ancestros 50000 arriba"
+        },
+        {
+          "id": "AC-3408b",
+          "given": "el periodo de la fecha está cerrado",
+          "when": "el agente registra un gasto con esa fecha",
+          "then": "recibe 422 `closed_period_violation` y el libro queda idéntico"
+        },
+        {
+          "id": "AC-3408c",
+          "given": "un id de hoja que no existe en el árbol",
+          "when": "el agente registra un gasto sobre él",
+          "then": "recibe 422 `invalid_target` y el libro queda idéntico"
+        },
+        {
+          "id": "AC-3408d",
+          "given": "una cuenta con ciclo que abre el día 21",
+          "when": "el agente registra un gasto con fecha 2026-10-22",
+          "then": "el movimiento queda en el mismo periodo que le daría el registro manual"
+        }
+      ]
+    },
+    {
+      "id": "US-3409",
+      "requirement_id": "FR-3409",
+      "as_a": "Agent-L",
+      "i_want": "poder reintentar un registro sin miedo a duplicarlo",
+      "so_that": "un corte de red o dos avisos del banco no dejen dos movimientos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3409a",
+          "given": "un gasto de 50000 ya registrado con la referencia «L300»",
+          "when": "envío otra vez el mismo registro con «L300»",
+          "then": "recibo 200 con el mismo id y el Ejecutado solo subió 50000 una vez"
+        },
+        {
+          "id": "AC-3409b",
+          "given": "un gasto de 50000 registrado con «L300»",
+          "when": "envío un gasto de 70000 con «L300»",
+          "then": "recibo 409 `reference_conflict` con el movimiento existente y el libro no cambia"
+        },
+        {
+          "id": "AC-3409c",
+          "given": "ningún movimiento con «L301»",
+          "when": "envío a la vez dos registros idénticos con «L301»",
+          "then": "queda un solo movimiento"
+        }
+      ]
+    },
+    {
+      "id": "US-3410",
+      "requirement_id": "FR-3410",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que mis traslados a las alcancías del banco queden como reservas en la app",
+      "so_that": "el saldo reservado y el Disponible reflejen lo que pasó sin teclearlo yo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3410a",
+          "given": "un bolsillo «Viaje» con saldo 0 y Disponible suficiente",
+          "when": "el agente reserva 200000 de Disponible a «Viaje»",
+          "then": "recibe 201, el saldo de «Viaje» es 200000 y el Disponible baja 200000"
+        },
+        {
+          "id": "AC-3410b",
+          "given": "el bolsillo «Viaje» con saldo 200000",
+          "when": "el agente saca 250000 hacia Disponible",
+          "then": "recibe 422 `domain_rule_violation` con regla `piso` y límite 200000, y nada cambia"
+        },
+        {
+          "id": "AC-3410c",
+          "given": "bolsillos «Viaje» con 200000 y «Carro» con 0",
+          "when": "el agente mueve 30000 de «Viaje» a «Carro»",
+          "then": "quedan en 170000 y 30000 y el saldo reservado total no cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-3411",
+      "requirement_id": "FR-3411",
+      "as_a": "dueño del presupuesto",
+      "i_want": "decirle al agente «eso era mercado, no restaurantes» y que lo corrija en la app",
+      "so_that": "no tenga que abrir la app para arreglar una clasificación",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3411a",
+          "given": "un gasto de 50000 del agente en «Restaurantes»",
+          "when": "el agente lo corrige a «Mercado»",
+          "then": "«Restaurantes» baja 50000 y «Mercado» sube 50000 en ese periodo"
+        },
+        {
+          "id": "AC-3411b",
+          "given": "un gasto registrado a mano por el dueño en la app",
+          "when": "el agente intenta corregirlo",
+          "then": "recibe 404 y el gasto queda idéntico"
+        },
+        {
+          "id": "AC-3411c",
+          "given": "un gasto del agente en un periodo ya cerrado",
+          "when": "el agente intenta cambiarle el monto",
+          "then": "recibe 422 `closed_period_violation` y nada cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-3412",
+      "requirement_id": "FR-3412",
+      "as_a": "dueño del presupuesto",
+      "i_want": "decirle al agente «anula eso» y que desaparezca de la app, también si era un traslado",
+      "so_that": "un registro equivocado no se quede en mi libro",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3412a",
+          "given": "un gasto de 50000 del agente en «Mercado»",
+          "when": "el agente lo deshace",
+          "then": "«Mercado» baja 50000 y el movimiento ya no aparece"
+        },
+        {
+          "id": "AC-3412b",
+          "given": "una reserva de 200000 del agente en «Viaje», sin retiros posteriores",
+          "when": "el agente la deshace",
+          "then": "«Viaje» y el Disponible vuelven a sus valores previos"
+        },
+        {
+          "id": "AC-3412c",
+          "given": "una reserva de 200000 en «Viaje» de la que ya se sacaron 150000",
+          "when": "el agente la deshace",
+          "then": "recibe 422 `domain_rule_violation` con regla `piso` y nada cambia"
+        },
+        {
+          "id": "AC-3412d",
+          "given": "un movimiento registrado a mano",
+          "when": "el agente intenta deshacerlo",
+          "then": "recibe 404 y el movimiento sigue ahí"
+        }
+      ]
+    },
+    {
+      "id": "US-3413",
+      "requirement_id": "FR-3413",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que quede guardado qué movimientos escribió el agente",
+      "so_that": "pueda revisar y deshacer lo suyo aunque después yo guarde desde la app",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3413a",
+          "given": "un movimiento registrado por el token «Agent-L»",
+          "when": "consulto la base",
+          "then": "lleva la marca de ese token y su referencia; un movimiento manual lleva ambas vacías"
+        },
+        {
+          "id": "AC-3413b",
+          "given": "un movimiento del agente ya guardado",
+          "when": "el navegador guarda el libro completo sin tocarlo",
+          "then": "el movimiento conserva su marca y su referencia"
+        },
+        {
+          "id": "AC-3413c",
+          "given": "un movimiento manual",
+          "when": "un guardado desde el navegador trae ese movimiento con una marca de agente inventada",
+          "then": "el servidor lo guarda sin marca"
+        }
+      ]
+    },
+    {
+      "id": "US-3414",
+      "requirement_id": "FR-3414",
+      "as_a": "dueño del presupuesto",
+      "i_want": "ver en el Detalle qué movimientos puso el agente",
+      "so_that": "distinga de un vistazo lo suyo de lo mío",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3414a",
+          "given": "una celda con un movimiento del token «Agent-L» y otro manual",
+          "when": "abro su Detalle",
+          "then": "el del agente muestra la etiqueta de texto «Agent-L» y el manual ninguna"
+        },
+        {
+          "id": "AC-3414b",
+          "given": "un token con nombre de 60 caracteres",
+          "when": "abro el Detalle a 375 px de ancho",
+          "then": "la etiqueta se trunca con elipsis y la fila no desborda"
+        },
+        {
+          "id": "AC-3414c",
+          "given": "un libro sin movimientos de agente",
+          "when": "abro cualquier Detalle",
+          "then": "no aparece ninguna etiqueta y la fila mide lo mismo que antes"
+        }
+      ]
+    },
+    {
+      "id": "US-3415",
+      "requirement_id": "FR-3415",
+      "as_a": "dueño del presupuesto",
+      "i_want": "preguntarle al agente cómo voy y que me dé las cifras de la app",
+      "so_that": "no haya dos respuestas distintas a la misma pregunta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3415a",
+          "given": "el libro de pruebas de admin@admin.com",
+          "when": "el agente pide el resumen de un periodo",
+          "then": "cada cifra coincide peso a peso con la de la app en ese periodo"
+        },
+        {
+          "id": "AC-3415b",
+          "given": "una cuenta con ciclos",
+          "when": "el agente pide el resumen sin indicar periodo",
+          "then": "recibe el del ciclo vigente, con su identificador y su rango de fechas"
+        },
+        {
+          "id": "AC-3415c",
+          "given": "un token válido",
+          "when": "pide el resumen del periodo «2026-13»",
+          "then": "recibe 400 `invalid_period`"
+        }
+      ]
+    },
+    {
+      "id": "US-3416",
+      "requirement_id": "FR-3416",
+      "as_a": "Agent-L",
+      "i_want": "leer los movimientos de un periodo y encontrar uno por su referencia",
+      "so_that": "conteste «en qué se fue» y ubique lo que registré antes de corregirlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3416a",
+          "given": "un periodo con 3 movimientos manuales y 2 del agente",
+          "when": "pido los movimientos del periodo",
+          "then": "recibo los 5 con monto, fecha, hoja y nombre, y los 2 del agente marcados con su referencia"
+        },
+        {
+          "id": "AC-3416b",
+          "given": "un movimiento registrado con la referencia «L300»",
+          "when": "lo busco por «L300»",
+          "then": "recibo ese único movimiento"
+        },
+        {
+          "id": "AC-3416c",
+          "given": "ningún movimiento con la referencia «L999»",
+          "when": "lo busco",
+          "then": "recibo 404 `not_found`"
+        }
+      ]
+    },
+    {
+      "id": "US-3417",
+      "requirement_id": "FR-3417",
+      "as_a": "Agent-L",
+      "i_want": "preguntar a qué periodo cae una fecha",
+      "so_that": "use el calendario de la app y no uno propio",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3417a",
+          "given": "una cuenta por mes calendario",
+          "when": "pregunto por 2026-10-10",
+          "then": "recibo el periodo 2026-10 con rango 2026-10-01 a 2026-10-31"
+        },
+        {
+          "id": "AC-3417b",
+          "given": "una cuenta con ciclo que abre el día 21 y el ciclo anterior cerrado",
+          "when": "pregunto por una fecha de ese ciclo",
+          "then": "recibo su periodo con el campo de cerrado en verdadero"
+        },
+        {
+          "id": "AC-3417c",
+          "given": "un token válido",
+          "when": "pregunto por 2026-02-30",
+          "then": "recibo 400 `invalid_date`"
+        }
+      ]
+    },
+    {
+      "id": "US-3418",
+      "requirement_id": "FR-3418",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que lo que registra el agente aparezca en la app que tengo abierta y no se me borre al guardar",
+      "so_that": "pueda usar la app y Telegram a la vez sin perder nada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3418a",
+          "given": "la app abierta en el periodo vigente",
+          "when": "el agente registra un gasto de 50000",
+          "then": "el Ejecutado y el Detalle lo muestran en ≤ 5 s sin recargar"
+        },
+        {
+          "id": "AC-3418b",
+          "given": "una app que cargó el libro en la revisión 10 y un gasto del agente que la llevó a 11",
+          "when": "esa app guarda el libro completo con la revisión 10",
+          "then": "el guardado se rechaza por revisión desactualizada y el gasto del agente sigue en la base"
+        },
+        {
+          "id": "AC-3418c",
+          "given": "un registro del agente que se rechaza por periodo cerrado",
+          "when": "se procesa",
+          "then": "la revisión no cambia y no se publica ningún aviso de sincronización"
+        }
+      ]
+    },
+    {
+      "id": "US-3419",
+      "requirement_id": "FR-3419",
+      "as_a": "desarrollador del perfil del agente",
+      "i_want": "un documento con el contrato de la puerta del agente",
+      "so_that": "adapte el ayudante sin leer el código del servidor",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3419a",
+          "given": "el repositorio",
+          "when": "abro la documentación del agente en `docs/`",
+          "then": "encuentro las siete operaciones con ejemplo de petición y respuesta y todos los códigos de rechazo"
+        },
+        {
+          "id": "AC-3419b",
+          "given": "la documentación y sus ejemplos",
+          "when": "corre la prueba que busca tokens con formato válido",
+          "then": "no encuentra ninguno"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-3401",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El acceso por sesión del navegador sigue igual: las rutas de `/api/v1/*` y `/api/auth/*` conservan métodos, respuestas, códigos y cookies. El envoltorio `withApi` de `src/server/http.ts` no gana ninguna vía de autenticación nueva.",
+      "acceptance_criteria": "Las pruebas de backend existentes de autenticación y de contrato pasan sin modificar sus aserciones; con sesión válida cada ruta de /api/v1 responde igual que antes; sin sesión cada ruta protegida sigue en 401; y una prueba estructural confirma que `withApi` no lee la cabecera de autorización"
+    },
+    {
+      "id": "NFR-3402",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Toda mutación de la API del navegador sigue exigiendo sesión y un Origin permitido; una petición sin sesión recibe el mismo rechazo que hoy, traiga o no un token de agente.",
+      "acceptance_criteria": "Una mutación con sesión y Origin permitido se acepta como hoy; con sesión y Origin no permitido recibe 403 `origin_not_allowed`; sin sesión y con token de agente recibe 401 y la base queda idéntica"
+    },
+    {
+      "id": "NFR-3403",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las cifras de la pantalla no cambian: `rollup.ts`, `balance.ts` y `reserve.ts` conservan sus resultados; el resumen del servidor los llama, no los copia ni los modifica.",
+      "acceptance_criteria": "Para un mismo estado, `rollupTable`, `typeTotals`, `computeBalanceSeries` y el saldo derivado de reservas devuelven exactamente los mismos valores que antes de la feature; un libro sin movimientos de agente se ve idéntico en grilla, Balance y Detalle; y un libro con un movimiento de agente da las mismas cifras que el mismo libro con ese movimiento registrado a mano"
+    },
+    {
+      "id": "NFR-3404",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas del servidor valen igual para el agente: ninguna escritura por la superficie del agente deja el libro en un estado que el registro manual habría rechazado (cierre de mes, periodo según la fecha, techo, piso y déficit de reservas, celda igual a la suma de sus movimientos).",
+      "acceptance_criteria": "Para cada regla, la misma operación enviada por la superficie del agente y por la API del navegador sobre libros idénticos recibe el mismo veredicto (ambas aceptadas o ambas rechazadas con el mismo código); tras cualquier escritura aceptada del agente la alerta de descuadre entre celda y movimientos no se activa; y una escritura rechazada deja la base byte a byte igual"
+    },
+    {
+      "id": "NFR-3405",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El aislamiento entre cuentas se mantiene: ninguna lectura ni escritura, por ninguna de las dos superficies, alcanza datos de otro usuario.",
+      "acceptance_criteria": "Con dos cuentas con datos, toda operación de la superficie del agente hecha con el token de A devuelve solo datos de A; los identificadores de B se contestan 404; tras recorrer todas las operaciones con el token de A, las filas de B en la base quedan idénticas; y las pruebas de aislamiento existentes de /api/v1 siguen pasando"
+    },
+    {
+      "id": "NFR-3406",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los movimientos registrados a mano, sin referencia de origen ni marca, siguen siendo válidos y se comportan igual: se leen, se editan, se borran y viajan en el guardado completo como antes. La migración es aditiva.",
+      "acceptance_criteria": "Tras aplicar la migración sobre una base con movimientos previos, todos se leen con los mismos valores y sin marca; registrar, editar y borrar un movimiento manual desde la app funciona igual; un guardado completo con movimientos sin los campos nuevos se acepta; y dos movimientos manuales sin referencia no chocan entre sí por la unicidad de la referencia"
+    },
+    {
+      "id": "NFR-3407",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los límites de intentos del login y de la recuperación de acceso siguen activos y con los mismos valores; el tope de la superficie del agente usa cubos propios que no los comparten ni los consumen.",
+      "acceptance_criteria": "Las pruebas existentes de límite de intentos de login y de recuperación pasan sin cambios; agotar el tope de un token de agente no provoca 429 en el login ni en la recuperación; y agotar el límite del login no provoca 429 en la superficie del agente"
+    },
+    {
+      "id": "NFR-3408",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La sincronización entre pestañas y dispositivos sigue funcionando para la sesión del navegador: el stream no cambia de contrato y no acepta el token de agente.",
+      "acceptance_criteria": "Las pruebas existentes de sincronización pasan sin cambios; un cambio hecho en una pestaña aparece en otra como hoy; el stream de sincronización pedido con un token de agente y sin sesión recibe 401; y un cambio hecho por el agente llega a las pestañas abiertas por el mismo evento de revisión que uno hecho desde el navegador"
+    },
+    {
+      "id": "NFR-3409",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde: las pruebas de la raíz y de cada feature cerrada pasan sin relajar aserciones ni saltar pruebas.",
+      "acceptance_criteria": "verify-run de la raíz y del backend terminan con exit code 0, sin pruebas en fail ni skip que antes pasaran, y el conteo de casos acreditados no baja respecto al commit base de la feature (raíz 59/59, backend 86/86, total 2007)"
+    },
+    {
+      "id": "NFR-3410",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El token de agente se trata como un secreto: se genera con el generador criptográfico del sistema, solo su hash se guarda, la comparación no depende del tiempo, y nunca aparece en logs, respuestas de error, URL ni en el repositorio. La superficie del agente niega por defecto: toda ruta bajo ella pasa por el mismo envoltorio de token, interruptor y tope, y no existe ruta HTTP que cree, liste o revoque tokens.",
+      "acceptance_criteria": "Tras crear un token y usarlo en peticiones aceptadas y rechazadas, ni la salida del servidor ni la base contienen el token en claro; el token solo se acepta en la cabecera de autorización (en query string se ignora y recibe 401); una prueba estructural recorre los archivos de ruta de la superficie del agente y falla si alguno no usa el envoltorio del agente; una prueba confirma que ningún archivo del repositorio contiene una cadena con formato válido de token; y `aitri audit security` sobre la superficie nueva no deja hallazgos P0"
+    },
+    {
+      "id": "NFR-3411",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "La superficie del agente valida toda entrada en el borde con esquemas estrictos y acota su tamaño; los errores no filtran detalle interno; y el despliegue documentado la deja alcanzable solo por una red interna de la máquina, sin publicarla hacia internet.",
+      "acceptance_criteria": "Un cuerpo con campos desconocidos, tipos erróneos o de más de 16 KiB recibe 422 o 413 sin tocar la base; un error interno responde 500 `internal_error` sin traza ni SQL; las respuestas de la superficie llevan `Cache-Control: no-store`; y la guía de despliegue describe cómo conectar el contenedor del agente por una red interna y declara que la ruta de la superficie no se publica en el proxy de acceso externo"
+    },
+    {
+      "id": "NFR-3412",
+      "category": "Observability",
+      "priority": "MUST",
+      "requirement": "Cada petición a la superficie del agente deja una línea de log con fecha, método, ruta, estado, duración y el identificador del token (nunca el token), para poder reconstruir qué hizo el agente.",
+      "acceptance_criteria": "Tras una petición aceptada y una rechazada, la salida del servidor contiene para cada una una línea `[timestamp] METHOD /ruta STATUS (ms)` con el identificador del token cuando se resolvió, y ninguna línea contiene el token ni la nota o el monto del movimiento"
+    },
+    {
+      "id": "NFR-3413",
+      "category": "CI/CD",
+      "requirement": "El flujo de CI existente ejecuta las pruebas nuevas de esta feature junto con la suite completa en cada push y en cada pull request a main.",
+      "acceptance_criteria": "`.github/workflows/ci.yml` sigue disparándose en push y pull_request, ejecuta los scripts de pruebas unitarias, de backend y e2e del proyecto, y las pruebas de esta feature viven en rutas que esos scripts ya recogen (sin un comando aparte que el CI no llame)"
+    },
+    {
+      "id": "NFR-3414",
+      "category": "Reliability",
+      "requirement": "El healthcheck no cambia: GET /health responde 200 con la superficie del agente habilitada o apagada, y no exige token.",
+      "acceptance_criteria": "GET /health devuelve 200 sin autenticación con el ajuste de la superficie activado y con el ajuste ausente"
+    },
+    {
+      "id": "NFR-3415",
+      "category": "Performance",
+      "requirement": "Las operaciones del agente no son más lentas que sus equivalentes manuales en un orden de magnitud. Umbrales confirmados por el usuario el 2026-10-13.",
+      "acceptance_criteria": "Sobre el libro de pruebas de admin@admin.com en el arnés de backend, el resumen de un periodo responde en ≤ 1000 ms y el registro de un movimiento en ≤ 1000 ms, medidos en el servidor"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo dijo en el chat el 2026-10-10: el original queda como POC y la copia debe hacer lo mismo pero escribir en esta app en vez del Excel; BL-057 (pedido del 2026-09-25)",
+    "users": "El usuario en el chat (2026-09-26 y 2026-10-10): él conversa por Telegram con el agente, que es un perfil Hermes copiado; el agente se llamará Agent-L",
+    "baseline": "Estudio de los dos perfiles por SSH pedido por el usuario el 2026-10-10 (el original escribe en su archivo y su Excel; la copia está congelada al 26-sep) y lectura del código actual de T-Ledger",
+    "success_metric": "Redactados por el agente a partir de las decisiones del usuario y confirmados por el usuario en el chat el 2026-10-13 («ok»): mismas cifras peso a peso, un solo movimiento por referencia y prueba completa en dev con admin@admin.com",
+    "no_go_zone": "El usuario en el chat el 2026-10-10: no migrar movimientos del original; el agente no crea categorías ni árboles; el código de Hermes va en un repositorio aparte; aprobó el diseño que descarta la escritura directa en la base, la API del navegador, la pantalla de tokens y la bandeja de propuestas"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Que la copia del agente lleve su libro en T-Ledger en vez de en su archivo y su Excel",
+      "disposition": "FR-3408"
+    },
+    {
+      "need": "El agente no usa la API del navegador ni escribe directo en la base: superficie propia y pequeña",
+      "disposition": "FR-3403"
+    },
+    {
+      "need": "La superficie ofrece solo siete operaciones; lo demás no existe para el agente",
+      "disposition": "FR-3403"
+    },
+    {
+      "need": "La API del navegador no cambia y no acepta el token del agente",
+      "disposition": "FR-3404"
+    },
+    {
+      "need": "Token propio de la cuenta, al azar, mostrado una sola vez, guardado como hash",
+      "disposition": "FR-3401"
+    },
+    {
+      "need": "Crear, listar (nombre, creado, último uso) y revocar tokens por comando; revocado deja de funcionar de inmediato",
+      "disposition": "FR-3402"
+    },
+    {
+      "need": "Acceso solo a los datos de la cuenta que creó el token",
+      "disposition": "FR-3403"
+    },
+    {
+      "need": "Cada movimiento del agente queda marcado con quién lo registró y su referencia",
+      "disposition": "FR-3413"
+    },
+    {
+      "need": "La app muestra la marca para que el usuario vea qué escribió el agente y pueda deshacerlo",
+      "disposition": "FR-3414"
+    },
+    {
+      "need": "Tope de peticiones por token por si el agente entra en bucle",
+      "disposition": "FR-3406"
+    },
+    {
+      "need": "La superficie entera se apaga con un ajuste del servidor",
+      "disposition": "FR-3405"
+    },
+    {
+      "need": "En producción se alcanza solo por una red interna; no se publica hacia internet",
+      "disposition": "NFR-3411"
+    },
+    {
+      "need": "Mismas reglas que el registro manual y motivo del rechazo que el agente pueda decir",
+      "disposition": "FR-3408"
+    },
+    {
+      "need": "Referencia de origen: un reintento o dos avisos del banco no crean un segundo movimiento",
+      "disposition": "FR-3409"
+    },
+    {
+      "need": "Corregir lo ya registrado: monto, fecha, nota y categoría de un gasto o ingreso",
+      "disposition": "FR-3411"
+    },
+    {
+      "need": "Borrar lo ya registrado (anular / ignorar algo ya clasificado)",
+      "disposition": "FR-3412"
+    },
+    {
+      "need": "Deshacer una operación de bolsillo registrada por error (hoy se rechaza por la vía de los movimientos)",
+      "disposition": "FR-3412"
+    },
+    {
+      "need": "Cuenta principal = Disponible; alcancías = saldo reservado; traslado = reservar, sacar o mover sobre un bolsillo concreto",
+      "disposition": "FR-3410"
+    },
+    {
+      "need": "La descripción del agente viaja como la nota del movimiento",
+      "disposition": "FR-3408"
+    },
+    {
+      "need": "Entregar el árbol vigente con identificadores y nombres para clasificar contra él",
+      "disposition": "FR-3407"
+    },
+    {
+      "need": "El agente no crea, renombra ni borra categorías ni bolsillos",
+      "disposition": "FR-3407"
+    },
+    {
+      "need": "Si ningún nodo encaja, el movimiento queda pendiente en el agente y le pide al usuario crearlo en la app",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "El agente no tiene catálogo propio; sus alias apuntan a nodos del árbol de la app",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Resumen de un periodo calculado en el servidor con las funciones del dominio",
+      "disposition": "FR-3415"
+    },
+    {
+      "need": "Leer los movimientos de un periodo y ubicar un movimiento reciente al corregirlo",
+      "disposition": "FR-3416"
+    },
+    {
+      "need": "Decir a qué periodo pertenece una fecha según el calendario del usuario",
+      "disposition": "FR-3417"
+    },
+    {
+      "need": "El código del agente vive en un repositorio aparte; este entrega la API y su contrato documentado",
+      "disposition": "FR-3419"
+    },
+    {
+      "need": "Re-igualar la copia con el original (4x1000, instrucciones) antes de integrarla",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Pendientes, ignorados, cuentas por pagar, correos procesados, recordatorios y el número L123 se quedan en el agente",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Un movimiento que registra el agente aparece en la app abierta sin recargar",
+      "disposition": "FR-3418"
+    },
+    {
+      "need": "Prueba de punta a punta en dev con admin@admin.com antes de producción",
+      "disposition": "NFR-3409"
+    },
+    {
+      "need": "Auditoría de seguridad sin hallazgos P0 sobre la superficie nueva",
+      "disposition": "NFR-3410"
+    },
+    {
+      "need": "Ningún token, clave ni dato real en el repositorio público",
+      "disposition": "NFR-3410"
+    },
+    {
+      "need": "Must not break: el acceso por sesión del navegador sigue igual",
+      "disposition": "NFR-3401"
+    },
+    {
+      "need": "Must not break: toda mutación del navegador exige sesión y Origin",
+      "disposition": "NFR-3402"
+    },
+    {
+      "need": "Must not break: las cifras de la pantalla no cambian",
+      "disposition": "NFR-3403"
+    },
+    {
+      "need": "Must not break: las reglas del servidor valen igual para el agente",
+      "disposition": "NFR-3404"
+    },
+    {
+      "need": "Must not break: aislamiento entre cuentas",
+      "disposition": "NFR-3405"
+    },
+    {
+      "need": "Must not break: los movimientos manuales sin referencia siguen válidos",
+      "disposition": "NFR-3406"
+    },
+    {
+      "need": "Must not break: límites de intentos del login y de la recuperación",
+      "disposition": "NFR-3407"
+    },
+    {
+      "need": "Must not break: sincronización entre pestañas",
+      "disposition": "NFR-3408"
+    },
+    {
+      "need": "Migrar los movimientos del Tony original",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que el agente cierre meses, cambie ciclos, saldo inicial, presupuesto o preferencias",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Pantalla en la app para gestionar tokens",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Bandeja de propuestas del agente para aprobar en la app",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Chat dentro de la app, WhatsApp o servidor MCP",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambios en el perfil original y relevo del vigilante de correo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Tokens con permisos a medida, caducidad configurable o compartidos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Permiso para que el agente toque movimientos registrados a mano cuando el dueño se lo pida",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- AGENT: if you fill this for the user, confirm the ground-truth fields\n     (Problem / Why, Target Users, Success Criteria, Out of Scope) with them —\n     do not silently infer. Mark anything you inferred as \"[ASSUMPTION] …\".\n     Phase 1 records these as a provenance contract and blocks unconfirmed,\n     untracked guesses on the highest-value inputs. -->\n\n<!-- Origen: BL-057 y las decisiones del usuario del 2026-09-26 y del 2026-10-10. El 10-oct el usuario\n     fijó el rumbo: el Tony original queda como prueba de concepto y la copia (`tledger`) hace LO MISMO\n     que el original, pero su libro es T-Ledger en vez del archivo y el Excel. Sustituye al borrador\n     anterior, que solo cubría lectura. Estudio previo de los dos perfiles hecho por SSH el 10-oct. -->\n\n## Feature\nQue Tony Ledger —la copia del agente que el usuario ya usa por Telegram— lleve su libro en T-Ledger: lo que hoy registra, corrige y consulta sobre su archivo propio y su Excel, lo registre, corrija y consulte en la app.\n\n## Problem / Why\nHoy hay dos libros desconectados. Tony captura bien (correo del banco, preguntas por Telegram, pendientes, cuentas por pagar, 4x1000) pero escribe en un archivo propio y un Excel; T-Ledger tiene el presupuesto, los bolsillos y el Balance, pero se alimenta a mano. El usuario registra dos veces o deja uno de los dos atrasado, y cuando le pregunta a Tony cuánto lleva gastado, Tony suma con el modelo sobre su archivo y la cifra puede no coincidir con la app.\n\nT-Ledger no tiene por dónde dejar entrar a un agente: solo acepta la sesión del navegador; cada movimiento exige una categoría del árbol del usuario; no guarda de dónde vino un movimiento, así que un reintento lo duplicaría; y las cifras que importan (presupuestado, ejecutado, restante, Balance, saldo de cada bolsillo) se calculan solo en el navegador.\n\nDecisiones del usuario: integración sobre la copia del perfil, no un agente nuevo dentro de T-Ledger (2026-09-26). El original no se toca y queda como prueba de concepto; la copia es su espejo con T-Ledger como libro (2026-10-10).\n\n## Target Users\nEl dueño de la cuenta de T-Ledger, que conversa con Tony por Telegram y sigue usando la app en el navegador. Tony (el perfil `tledger` en Hermes) es el cliente técnico que actúa en su nombre con un acceso propio.\n\n## New Behavior\n\n### Acceso del agente (diseño aprobado por el usuario el 2026-10-10)\n- El agente NO usa la API del navegador ni escribe directo en la base: entra por una superficie propia y pequeña del mismo servidor, hecha a su medida, que por dentro llama a las mismas funciones del dominio y del repositorio que usa la app. Lo que no está en esa superficie no existe para el agente.\n- La superficie del agente ofrece solo esto: leer el árbol; registrar un movimiento (gasto, ingreso u operación de bolsillo); corregirlo; deshacerlo; leer los movimientos de un periodo; pedir el resumen de un periodo; preguntar a qué periodo cae una fecha.\n- La API del navegador no cambia y NO acepta el token del agente: sigue exigiendo sesión y Origin.\n- El agente se identifica con un token propio de la cuenta: largo, al azar, mostrado una sola vez al crearlo y guardado en el servidor solo como hash. Da acceso ÚNICAMENTE a los datos de la cuenta que lo creó.\n- Los tokens se crean, se listan (nombre, cuándo se creó, cuándo se usó por última vez) y se revocan con un comando en el servidor, sin pantalla nueva: una sesión de navegador robada no puede fabricar un token. Un token revocado deja de funcionar de inmediato.\n- Cada movimiento que registra el agente queda marcado con quién lo registró y su referencia de origen, y la app lo muestra, para que el usuario vea qué escribió el agente y pueda deshacerlo.\n- La superficie del agente tiene un tope de peticiones por token, por si el agente entra en bucle.\n- La superficie entera se apaga con un ajuste del servidor; apagada, contesta como si no existiera.\n- En producción se alcanza solo por una red interna de la máquina, entre el contenedor del agente y el de la app; no se publica hacia internet.\n\n### Escribir como lo hace hoy Tony\n- El sistema debe aplicar a lo que escribe el agente exactamente las mismas reglas que al registro manual (categoría válida, mes cerrado, periodo según la fecha, techo y piso de bolsillos) y contestar el motivo del rechazo de forma que Tony pueda decírselo al usuario.\n- El sistema debe guardar, por movimiento, una referencia de origen opcional que entrega quien lo registra; si llega otra vez un registro con la misma referencia, no crea un segundo movimiento y devuelve el que ya existe. (Tony reintenta, y el banco manda dos avisos por traslado.)\n- El sistema debe dejar que el agente corrija lo que ya registró: monto, fecha, nota y categoría de un gasto o ingreso, y borrarlo (lo que en Tony es «anular» o «ignorar» algo ya clasificado).\n- [ASSUMPTION] El sistema debe dejar deshacer con el token una operación de bolsillo registrada por error. Revisado el 2026-10-10: hoy corregir o borrar un movimiento de bolsillo por la vía de los movimientos se rechaza siempre (`unsupported_type`); solo el navegador puede, guardando el libro completo, que es justo la vía que el agente no debe usar. El dominio ya tiene las funciones (`removeReserveOp`, `editReserveOp`).\n- Equivalencia fijada por el usuario (2026-10-10): lo que en Tony es la cuenta principal, en la app es el saldo DISPONIBLE; lo que en Tony son las alcancías, en la app es el saldo RESERVADO. Un traslado de la principal a una alcancía = reservar; de vuelta = sacar; entre alcancías = mover. Como la app reserva siempre en un bolsillo concreto, el agente elige el bolsillo del árbol y pregunta cuál cuando no es evidente.\n- La descripción que hoy guarda Tony viaja como la nota del movimiento.\n\n### Categorías: se usa el árbol de la app, sin crear nada\n- El sistema debe entregar el árbol vigente del usuario (tipos, grupos, categorías, subcategorías y bolsillos, con identificadores y nombres) para que Tony clasifique directamente contra él.\n- El agente NO crea, renombra ni borra categorías ni bolsillos. Si ningún nodo encaja, el movimiento se queda pendiente en Tony y Tony le dice al usuario que lo cree en la app o elija otro.\n- El agente no tiene catálogo propio: usa el de la app (decisión del usuario, 2026-10-10). Sus alias aprendidos («Rappicard = tarjeta de crédito») apuntan a nodos del árbol de la app.\n\n### Consultar con las cifras de la app\n- El sistema debe ofrecer una lectura de resumen de un periodo, calculada en el servidor con las mismas funciones del dominio que usa la pantalla: por categoría y grupo, lo presupuestado, lo ejecutado y lo restante; los totales de ingresos y gastos; el Balance (disponible) y el saldo de cada bolsillo.\n- El sistema debe permitir leer con el token los movimientos de un periodo, para contestar «en qué se fue» y para que Tony ubique un movimiento reciente al corregirlo.\n- El sistema debe decir a qué periodo pertenece una fecha según el calendario del usuario (mes o ciclo), para que Tony no lleve el ciclo por su cuenta.\n\n### El lado de Tony (la copia)\n- El código del agente es de Hermes y NO vive en este repositorio público: va en un repositorio aparte, privado y bien configurado (decisión del usuario, 2026-10-10). Este repositorio entrega la API y su contrato documentado, sin datos personales ni secretos.\n- La copia se llamará Agent-L (nombre fijado por el usuario el 2026-10-13).\n- La copia se vuelve a igualar con el original antes de integrarla: desde el 26-sep el original ganó el cálculo del 4x1000 y cambios en sus instrucciones.\n- Se quedan en Tony, sin pasar a T-Ledger: los pendientes sin confirmar, lo ignorado, las cuentas por pagar, los correos ya procesados, los recordatorios y el número visible de cada movimiento (L123), que Tony enlaza con el movimiento de la app.\n\n## Success Criteria\n- Dado un movimiento confirmado por el usuario en Telegram, cuando Tony lo registra, entonces aparece en la app en la categoría y el periodo correctos, con la misma cifra, y el Ejecutado y el Balance cambian igual que si se hubiera registrado a mano.\n- Dado el mismo registro enviado dos veces con la misma referencia de origen, entonces en la app hay un solo movimiento.\n- Dado un registro que la app no admite (mes cerrado, categoría inexistente, bolsillo sin saldo), entonces el libro no cambia y la respuesta trae el motivo.\n- Dado el libro de pruebas de admin@admin.com, cuando se pide con un token el resumen de un periodo, entonces cada cifra es idéntica, peso a peso, a la que muestra la app.\n- Dado un token válido, cuando se usa contra la API del navegador (guardar el libro, cerrar un mes, cambiar preferencias, tocar el árbol), entonces se rechaza igual que una petición sin sesión y nada cambia.\n- Dado un movimiento registrado por el agente, entonces en la app se distingue de uno registrado a mano.\n- Dado un token revocado, cuando se usa, entonces se rechaza y no devuelve ningún dato. Dado el token de un usuario, nunca aparecen ni se tocan datos de otra cuenta.\n- La auditoría de seguridad (`aitri audit security`) sobre la superficie nueva no deja hallazgos P0.\n- Ningún token, clave ni dato real queda en el repositorio (es público).\n- Prueba de punta a punta antes de producción (confirmado por el usuario, 2026-10-10: siempre se prueba en dev): en dev, con admin@admin.com, la copia registra un gasto, un ingreso, una reserva y una corrección, y contesta una consulta, todo por Telegram.\n\n## Touch Points\n- AÑADE: una superficie propia para agentes bajo `src/app/api/` con su envoltorio (token, tope de peticiones, interruptor) y un módulo de tokens en `src/server/`. `src/server/http.ts` (el envoltorio de la API del navegador) NO cambia.\n- AÑADE: un comando de servidor en `scripts/` para crear, listar y revocar tokens.\n- MODIFICA: esquema de la base (migración aditiva: tabla de tokens guardados como hash; referencia de origen y marca de quién registró en el movimiento).\n- MODIFICA: `src/server/data/ledgerRepo.ts` (referencia de origen e idempotencia; deshacer una operación de bolsillo reutilizando `removeReserveOp`).\n- MODIFICA: el Detalle de movimientos de la app, para mostrar la marca de lo registrado por el agente.\n- AÑADE: dentro de la superficie del agente, las lecturas (resumen del periodo, árbol, periodo de una fecha) que reutilizan `src/domain/rollup.ts`, `src/domain/balance.ts` y `src/domain/reserve.ts` sin cambiarlos.\n- AÑADE: la documentación del contrato de la API para agentes. El cliente y el perfil viven en el repositorio aparte.\n\n## Must Not Break (Regression Boundary)\n- El acceso por sesión del navegador sigue igual: mismas rutas, mismas respuestas, mismas cookies.\n- Toda mutación de la API del navegador sigue exigiendo sesión y un Origin permitido; una petición sin sesión recibe el mismo rechazo que hoy, traiga o no un token de agente.\n- Las cifras de la pantalla no cambian: el resumen del servidor usa las funciones del dominio, no una copia.\n- Las reglas del servidor valen igual para el agente: ninguna escritura con token deja el libro en un estado que el registro manual habría rechazado.\n- El aislamiento entre cuentas se mantiene: ninguna lectura ni escritura alcanza datos de otro usuario.\n- Los movimientos registrados a mano, sin referencia de origen, siguen siendo válidos y se comportan igual.\n- Los límites de intentos del login y de la recuperación de acceso siguen activos y con los mismos valores.\n- La sincronización entre pestañas sigue funcionando, y un movimiento que registra Tony aparece en la app abierta sin recargar.\n\n## Out of Scope\n- Migrar a T-Ledger los movimientos del libro del Tony original: en producción se toma lo que llegue desde el arranque (decisión del usuario, 2026-10-10).\n- Que el agente cree, renombre, mueva o borre categorías, grupos o bolsillos: el árbol se administra a mano en la app (decisión del usuario, 2026-10-10).\n- Que el agente cierre o reabra meses, cambie ciclos, el saldo inicial, el presupuesto o las preferencias.\n- Pasar a T-Ledger los pendientes, lo ignorado, las cuentas por pagar y los recordatorios: siguen en Tony.\n- Todo cambio en el perfil original `ledger`, que no se toca, y el relevo del vigilante de correo del original a la copia, que es un paso de operación en la Pi posterior a esta entrega.\n- Un chat dentro de la app, WhatsApp o un servidor MCP: el canal es Telegram por Hermes.\n- Elegir o cambiar el modelo de Tony.\n- Tokens con permisos a medida, con caducidad configurable o compartidos entre cuentas.\n- Una pantalla en la app para gestionar tokens: se hace con un comando del servidor; la pantalla se añade después si hace falta.\n- Una bandeja de propuestas del agente para aprobar en la app: el usuario ya confirma en Telegram.\n- Que el agente escriba directo en la base de datos o use la API del navegador.\n"
+}

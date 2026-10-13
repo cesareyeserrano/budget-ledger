@@ -15,6 +15,9 @@ import { z } from "zod";
 /** Nombres de las variables SIEMPRE requeridas (en cualquier entorno). */
 export const REQUIRED_ENV = ["DATABASE_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL"] as const;
 
+/** El único valor de LEDGER_AGENT_API que enciende la superficie para agentes (FR-3405). */
+export const AGENT_API_ON = "on";
+
 const baseSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL es requerida"),
   BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET es requerida"),
@@ -49,6 +52,9 @@ const baseSchema = z.object({
   // protección: quien despliegue sin proxy, o con `$proxy_add_x_forwarded_for`, tenía el
   // anti-fuerza-bruta apagado y nada se lo decía. Ahora hay que afirmarlo explícitamente.
   LEDGER_TRUST_PROXY: z.string().optional(),
+  // Feature tony-ledger (FR-3405): interruptor de la superficie para agentes (/api/agent/v1).
+  // Opcional y APAGADA por defecto: solo el valor exacto "on" la enciende.
+  LEDGER_AGENT_API: z.string().optional(),
   // Feature ciclos (FLAG-2): zona horaria en la que el servidor decide «hoy» (IANA).
   LEDGER_TZ: z.string().optional(),
   // SOLO PRUEBAS (ignoradas en production): fijar «hoy» y forzar un fallo a mitad de transacción.
@@ -71,6 +77,12 @@ export type Env = z.infer<typeof baseSchema> & {
    * momento (cuando alguien ya está bloqueado fuera), así que se decide al arrancar.
    */
   smtpEnabled: boolean;
+  /**
+   * true solo si LEDGER_AGENT_API === "on" (FR-3405). Cualquier otro valor —"true", "1", "ON", con
+   * espacios— o su ausencia la deja apagada: una superficie que se enciende por un error de
+   * configuración es justo lo que el interruptor existe para evitar.
+   */
+  agentEnabled: boolean;
 };
 
 /**
@@ -110,8 +122,12 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   const smtpEnabled = Boolean(
     env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD && env.SMTP_FROM
   );
+  // FR-3405: comparación estricta, igual que `trustProxy`. Fallar hacia «apagada» nunca expone nada.
+  // @aitri-trace FR-ID: FR-3405, US-ID: US-3405, AC-ID: AC-3405a, TC-ID: TC-AGT-053f
+  const agentEnabled = env.LEDGER_AGENT_API === AGENT_API_ON;
   return { ...env,
-    tz: env.LEDGER_TZ || "America/Bogota", allowedOrigins, googleEnabled, trustProxy, smtpEnabled };
+    tz: env.LEDGER_TZ || "America/Bogota", allowedOrigins, googleEnabled, trustProxy, smtpEnabled,
+    agentEnabled };
 }
 
 let cached: Env | null = null;
