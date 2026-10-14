@@ -17,19 +17,9 @@
   "projectName": "tony-ledger",
   "createdAt": "2026-10-06T20:28:15.752Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-14T02:23:57.661Z",
+  "updatedAt": "2026-10-14T03:10:06.339Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-11T02:35:28.006Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-13T17:08:11.793Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-10-13T17:13:32.524Z",
       "event": "completed",
@@ -128,6 +118,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-14T03:09:58.945Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 172,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-14T03:10:06.318Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 172,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -310,16 +316,16 @@
       "FR-3419": "176a01a2a1a042bd"
     }
   },
-  "verifyResultsHash": "63b6e640ded59669309d3d47bb5b19f4e49317b2180b476d8e1a1432704389e1",
-  "verifyRanAt": "2026-10-13T22:43:16.428Z",
-  "verifyRanRef": "fab0c7137e2e36fb499b4c47e1e14ffb07bc3521",
+  "verifyResultsHash": "5c1c69a2583a9b37015f5e775d0b6373bc5c283a981184b942b35efb8aa68a8e",
+  "verifyRanAt": "2026-10-14T03:09:58.907Z",
+  "verifyRanRef": "10978c3fdcfaf2a3a8e54fd9e3555ac99963d159",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 172,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-13T22:43:16.428Z"
+    "at": "2026-10-14T03:09:58.907Z"
   },
   "verifyPassed": true,
   "verifySummary": {
