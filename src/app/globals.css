@@ -137,6 +137,11 @@
   --type-income-text: #2f7d53;/* ya pasa AA como texto pequeño: no necesita variante aparte */
   --type-transfer: #2f6db4;   /* steel blue  — 5.3:1 sobre blanco */
 
+  /* tony-ledger BL-096 — la marca «lo registró un agente». NO es un color de tipo: no clasifica el
+     movimiento, dice QUIÉN lo escribió. Token propio (mismo azul acero, ya medido) para que cambiar
+     uno no arrastre al otro. */
+  --agent: #2f6db4;           /* 5.3:1 sobre blanco */
+
   /* Relleno de acento AA-seguro con texto blanco (FR-311): el contraste depende de los dos colores,
      no del tema, así que el relleno usa el tono de claro en AMBOS temas (≥4.9:1 con --on-accent). */
   --type-expense-fill: #c4453e;   /* blanco 4.9:1 */
@@ -209,6 +214,7 @@
   --type-income: #5fbe82;     /* 7.5:1 */
   --type-income-text: #5fbe82;
   --type-transfer: #6ba6f1;   /* 6.8:1 */
+  --agent: #6ba6f1;           /* marca del agente (BL-096) — 6.8:1 */
 
   /* Relleno de acento AA-seguro con texto blanco: mismo tono oscuro que en claro (el contraste
      depende de los dos colores, no del tema), así el texto blanco pasa AA en oscuro también. */

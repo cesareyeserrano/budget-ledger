@@ -1,7 +1,7 @@
 /**
  * Module: components/AgentTag
  * Purpose: La marca «lo registró un agente» de una fila de movimiento (feature tony-ledger,
- *   FR-3414; BL-096). Es un ícono de bot: ocupa poco y no se confunde con la nota de la fila. El
+ *   FR-3414; BL-096). Es un ícono de bot, en el azul de `--agent` para que se note: ocupa poco y no se confunde con la nota de la fila. El
  *   NOMBRE del token que lo registró no se pierde: va como texto para lectores de pantalla, como
  *   título al pasar el cursor, y a la vista al tocar el ícono (en el teléfono no hay cursor).
  *   Un movimiento manual no tiene origen y no pinta nada: la fila queda exactamente como antes.
@@ -36,9 +36,9 @@ export function AgentTag({ movement, className = "" }: { movement: Movement; cla
       // la fila, así que una fila del agente mide lo mismo que una manual (TC-AGT-140h).
       // Abierta, el nombre se recorta con elipsis (hasta 60 caracteres) y no ensancha la fila.
       className={`inline-flex flex-none items-center gap-1 leading-tight ${abierta ? "max-w-[96px] rounded-(--radius-xs) border px-1" : ""} ${className}`}
-      style={{ color: "var(--fg-secondary)", borderColor: "var(--border-strong)" }}
+      style={{ color: "var(--agent)", borderColor: "var(--agent)" }}
     >
-      <Bot size={14} strokeWidth={1.5} className="flex-none" aria-hidden="true" />
+      <Bot size={14} strokeWidth={1.75} className="flex-none" aria-hidden="true" />
       <span data-testid="agent-tag-name" className={abierta ? "min-w-0 truncate" : "sr-only"}>{nombre}</span>
     </button>
   );
