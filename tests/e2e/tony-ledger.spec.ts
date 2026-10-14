@@ -248,12 +248,20 @@ test.describe("tony-ledger — lo que el dueño ve (FR-3414, FR-3418)", () => {
     await expect(etiqueta).toHaveAttribute("title", largo);
     await expect(aMano.getByTestId("agent-tag")).toHaveCount(0);
 
-    const medidas = await etiqueta.evaluate((el) => ({
+    // Cerrada es solo el ícono (BL-096): no gasta el ancho de la nota.
+    await expect(etiqueta).toHaveAttribute("data-open", "false");
+    expect(await etiqueta.evaluate((el) => Math.round(el.getBoundingClientRect().width))).toBeLessThanOrEqual(20);
+    // Al tocarla muestra el nombre, recortado: el caso que más ancho pide, y el que se mide abajo.
+    await etiqueta.click();
+    await expect(etiqueta).toHaveAttribute("data-open", "true");
+    const ancho = await etiqueta.evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    expect(ancho).toBeGreaterThan(20);
+    expect(ancho).toBeLessThanOrEqual(96);
+    const medidas = await etiqueta.getByTestId("agent-tag-name").evaluate((el) => ({
       recorte: getComputedStyle(el).textOverflow, visible: el.clientWidth, texto: el.scrollWidth,
     }));
     expect(medidas.recorte).toBe("ellipsis");
     expect(medidas.visible).toBeGreaterThan(0);
-    expect(medidas.visible).toBeLessThanOrEqual(96);
     expect(medidas.texto).toBeGreaterThan(medidas.visible); // el texto no cabe: está recortado
 
     // La fila del agente mide lo mismo que la manual: la etiqueta no la ensancha ni la desborda.
