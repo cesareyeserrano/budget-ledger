@@ -4,7 +4,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -16,14 +17,9 @@
   "projectName": "tony-ledger",
   "createdAt": "2026-10-06T20:28:15.752Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-13T22:44:42.804Z",
+  "updatedAt": "2026-10-14T02:23:57.661Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-11T01:37:22.862Z",
-      "event": "started",
-      "phase": 1
-    },
     {
       "at": "2026-10-11T02:35:28.006Z",
       "event": "completed",
@@ -125,6 +121,13 @@
       "at": "2026-10-13T22:44:42.793Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-10-14T02:23:57.637Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -179,6 +182,27 @@
       "FR-3419"
     ],
     "4": [
+      "FR-3401",
+      "FR-3402",
+      "FR-3403",
+      "FR-3404",
+      "FR-3405",
+      "FR-3406",
+      "FR-3407",
+      "FR-3408",
+      "FR-3409",
+      "FR-3410",
+      "FR-3411",
+      "FR-3412",
+      "FR-3413",
+      "FR-3414",
+      "FR-3415",
+      "FR-3416",
+      "FR-3417",
+      "FR-3418",
+      "FR-3419"
+    ],
+    "5": [
       "FR-3401",
       "FR-3402",
       "FR-3403",
@@ -263,6 +287,27 @@
       "FR-3417": "6109c3c78e9c999d",
       "FR-3418": "aed5ef03e0f97148",
       "FR-3419": "176a01a2a1a042bd"
+    },
+    "5": {
+      "FR-3401": "1fbaa5bf204afab5",
+      "FR-3402": "32abb251a50f1d81",
+      "FR-3403": "9f162b44860e537e",
+      "FR-3404": "618e33af818f4517",
+      "FR-3405": "ec3607cde3d05855",
+      "FR-3406": "236ac71528a351d3",
+      "FR-3407": "9ee04f965e2d2830",
+      "FR-3408": "b5229ac5f744eea0",
+      "FR-3409": "0230635e544f2876",
+      "FR-3410": "3ed1eef1c8cfb01c",
+      "FR-3411": "16440e79b1a41c21",
+      "FR-3412": "a43c6fd887a15b44",
+      "FR-3413": "d55a04d5f51ff2f8",
+      "FR-3414": "24b1e1917b60634b",
+      "FR-3415": "becbb0dbd678edc8",
+      "FR-3416": "37e3d5b8303d687c",
+      "FR-3417": "6109c3c78e9c999d",
+      "FR-3418": "aed5ef03e0f97148",
+      "FR-3419": "176a01a2a1a042bd"
     }
   },
   "verifyResultsHash": "63b6e640ded59669309d3d47bb5b19f4e49317b2180b476d8e1a1432704389e1",
@@ -286,5 +331,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-10-14T02:23:57.632Z"
+    }
+  ]
 }
