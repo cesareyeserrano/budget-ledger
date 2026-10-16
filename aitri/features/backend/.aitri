@@ -17,50 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-11T00:39:19.417Z",
+  "updatedAt": "2026-10-16T02:33:49.762Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-05T15:06:24.068Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-05T15:17:21.831Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-05T22:13:38.681Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-05T22:13:50.416Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-06T00:03:00.800Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-10-06T00:03:12.766Z",
       "event": "verify-complete",
@@ -179,6 +138,39 @@
       "phase": "verify",
       "passed": 86,
       "failed": 0
+    },
+    {
+      "at": "2026-10-16T02:32:16.936Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-16T02:33:29.981Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-16T02:33:41.644Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-10-16T02:33:48.513Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-16T02:33:49.743Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -253,8 +245,8 @@
       "FR-513"
     ]
   },
-  "verifyPassed": true,
-  "verifyRanRef": "c389eb49aa70160efb9a2ae8f1e58a10dd24e2d3",
+  "verifyPassed": false,
+  "verifyRanRef": "883084db9a7830f47816cf91079d7ae37f48ad09",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -288,30 +280,16 @@
       "FR-513": "bab0df1ae14824f7"
     }
   },
-  "verifyResultsHash": "498600ef2d0a67b71aec1d860185a2f76eb0738a59ab32833f1b4b1b01f9f526",
-  "verifyRanAt": "2026-10-11T00:39:05.262Z",
-  "lastVerifyRun": {
-    "passed": 86,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-10-11T00:39:05.262Z"
-  },
-  "verifySummary": {
-    "total": 86,
-    "passed": 86,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 1
-  },
   "releaseHistory": [
     {
       "version": "1.0.0",
       "version_source": null,
       "at": "2026-10-05T01:32:58.956Z"
+    },
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-10-16T02:33:49.742Z"
     }
   ]
 }
