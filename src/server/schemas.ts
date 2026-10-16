@@ -153,6 +153,10 @@ export const apiMovementSchema = z
     // Feature diario-de-celda (FR-2504). Ausente ≡ 'manual': los movimientos previos y los del
     // registro no lo traen, y el borde no debe inventarlo.
     kind: z.literal("adjustment").optional(),
+    // Feature tony-ledger (FR-3413/FR-3414): quién registró el movimiento. Sin este campo el
+    // navegador lo perdería al cargar el libro y no podría pintar la etiqueta. Viaja de ida y
+    // vuelta, pero en el PUT el servidor IGNORA lo que llegue y usa lo guardado (`conservarOrigen`).
+    origin: z.object({ ref: z.string().max(128), agentId: z.string().max(64), agentName: z.string().max(60) }).optional(),
   })
   .superRefine((m, ctx) => {
     const issue = (message: string) =>

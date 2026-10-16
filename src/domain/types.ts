@@ -87,6 +87,20 @@ export interface Movement {
    *  ingreso. Ausente ≡ `manual`, así que los movimientos previos siguen siendo válidos. El campo
    *  es inmutable: un ajuste no se convierte en manual ni al revés. */
   kind?: "adjustment";
+  /** Delta aditivo (feature tony-ledger, FR-3413): quién registró el movimiento cuando NO nació en
+   *  la app. Ausente ≡ registrado a mano. Lo pone y lo conserva SOLO el servidor: un guardado desde
+   *  el navegador no puede inventarlo, cambiarlo ni quitarlo. */
+  origin?: MovementOrigin;
+}
+
+/** El origen de un movimiento registrado por un agente (feature tony-ledger, FR-3409/FR-3413). */
+export interface MovementOrigin {
+  /** Referencia que el agente le dio; única por cuenta entre los movimientos vigentes. */
+  ref: string;
+  /** Id del token que lo registró (`agt_…`). No es secreto. */
+  agentId: string;
+  /** Nombre del token en el momento del registro: lo que la app muestra. */
+  agentName: string;
 }
 
 /** Observación manual de una celda (FR-1012). Texto ≤ 280; id/createdAt como los movimientos. */

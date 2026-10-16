@@ -529,6 +529,74 @@ export function editReserveOp(
   return { state: cand, movement: corregido };
 }
 
+/** Lo que devuelve deshacer una operación de reserva registrada por un agente. */
+export type UndoReserveResult =
+  | { state: LedgerState }
+  | { rejected: ReserveVerdict | "invalid_target" | "cell_already_changed" };
+
+/**
+ * Deshace un APORTE (de Disponible a una alcancía) registrado como operación explícita — feature
+ * tony-ledger, FR-3412, ADR-05.
+ *
+ * `removeReserveOp` no cubre este caso a propósito: en el modelo, un aporte VIVE en la celda (FR-1003)
+ * y su fila del journal solo lo acompaña. Deshacerlo es, por tanto, bajar la celda en el monto del
+ * aporte y quitar la fila. No trae regla nueva: la bajada pasa por `applyReserveCellEdit`, que
+ * valida techo, piso y déficit en cadena igual que si el dueño tecleara el valor en la grilla.
+ *
+ * Si la celda ya vale MENOS que el aporte —el dueño la bajó a mano después— no hay de dónde
+ * restarlo: se rechaza con `cell_already_changed` y nada cambia.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param movementId Id del aporte a deshacer.
+ * @param periods Rango con el que se juzga la cadena.
+ * @returns `{state}` con la celda bajada y sin el movimiento, o el motivo del rechazo
+ *          (`invalid_target` si el id no es un aporte desde Disponible).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3412, US-ID: US-3412, AC-ID: AC-3412b, TC-ID: TC-AGT-128h, TC-AGT-129e, TC-AGT-121h, TC-AGT-127f
+ */
+export function undoAporteOp(state: LedgerState, movementId: string, periods: PeriodScope): UndoReserveResult {
+  const mv = state.movements.find((m) => m.id === movementId);
+  if (!mv || mv.type !== "transfer" || !isAvailable(mv.from) || !mv.to || isAvailable(mv.to)) {
+    return { rejected: "invalid_target" };
+  }
+  const actual = state.actuals[mv.to]?.[mv.period] ?? 0;
+  if (actual < mv.amount) return { rejected: "cell_already_changed" };
+
+  const bajada = applyReserveCellEdit(
+    state, { leafId: mv.to, period: mv.period, plane: "actual", newAmount: actual - mv.amount }, periods
+  );
+  if ("rejected" in bajada) {
+    const v = bajada.rejected;
+    // El piso llega con el saldo NEGATIVO que quedaría; quien lo recibe necesita saber cuánto HAY
+    // en el bolsillo, que es lo que ya se usó y por eso no se puede deshacer (mismo re-mapeo que
+    // `verdictOf` hace para retiros y moveres).
+    if (v !== "invalid_target" && !v.ok && v.rule === "piso" && v.leafId) {
+      return { rejected: { ...v, limit: Math.max(0, resolvedBalance(state, v.leafId, v.period, "actual", periods)) } };
+    }
+    return { rejected: v };
+  }
+  return { state: { ...bajada.state, movements: bajada.state.movements.filter((m) => m.id !== movementId) } };
+}
+
+/**
+ * Deshace cualquier operación de reserva: un aporte por `undoAporteOp`; un retiro o un mover por
+ * `removeReserveOp` (FR-3412). Una sola puerta para que el llamador no tenga que saber cuál es cuál.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param movementId Id de la operación.
+ * @param periods Rango con el que se juzga la cadena.
+ * @returns `{state}` sin la operación, o el motivo del rechazo.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3412, US-ID: US-3412, AC-ID: AC-3412b, TC-ID: TC-AGT-126e, TC-AGT-122f
+ */
+export function undoReserveOp(state: LedgerState, movementId: string, periods: PeriodScope): UndoReserveResult {
+  const mv = state.movements.find((m) => m.id === movementId);
+  if (!mv || mv.type !== "transfer") return { rejected: "invalid_target" };
+  return isAvailable(mv.from) ? undoAporteOp(state, movementId, periods) : removeReserveOp(state, movementId, periods);
+}
+
 /**
  * Las operaciones de reserva de un mes que el usuario puede CORREGIR: retiros a Disponible y
  * moveres entre alcancías, en el orden del journal.

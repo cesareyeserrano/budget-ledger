@@ -25,6 +25,7 @@ import { DetailHeader } from "./DetailHeader";
 import { ClosedNotice } from "./PeriodBar";
 import { REGISTRAR, openScreen, replaceScreen } from "./screenStack";
 import { toneColor } from "./tone";
+import { AgentTag } from "../AgentTag";
 
 const TYPE_NAME: Record<LedgerNode["type"], string> = { income: "Ingresos", expense: "Gastos", transfer: "Reservas" };
 /** Qué se anota desde Registrar según el tipo, para el texto del estado vacío. */
@@ -100,6 +101,7 @@ function EntryRow({ entry, period, onEdit }: { entry: DetailEntry; period: Perio
       <span data-testid="mb-mov-note" className={`label min-w-0 flex-1 break-words font-normal ${m.note ? "text-fg" : "text-fg-muted"}`}>
         {m.note || "Sin nota"}
       </span>
+      <AgentTag movement={m} className="caption" />
       <span data-testid="mb-mov-amount" className="tabular label flex-none">{sign}{cellNum(abs)}</span>
       {onEdit && (
         <button

@@ -140,6 +140,37 @@ while IFS= read -r r; do
   if grep -qE 'auth:[[:space:]]*"required"' "$r" || grep -q 'getSessionUser' "$r"; then continue; fi
   check "RQ-SEC-104: $r no exige sesión (usa withApi con auth:\"required\", o añádela a PUBLICAS_OK con su FR)" 1
 done < <(find src/app/api/v1 -name route.ts | sort)
+
+# ── Puerta para agentes: toda ruta de /api/agent pasa por withAgent (feature tony-ledger, NFR-3410) ──
+# La superficie del agente niega por defecto: interruptor, origen, token y tope viven en `withAgent`,
+# así que un método exportado sin él quedaría abierto a cualquiera. Se mira CADA export, no el
+# archivo: un archivo con un GET protegido y un POST abierto pasaba el primer guardia que se escribió
+# (revisión adversarial, 2026-10-13). Cada método exportado tiene que ser una flecha que llama a un
+# handler definido EN ESE ARCHIVO como `= withAgent(` —o a `agentNotFound`, que ya lo es—; no vale
+# `export function`, ni `export { … }`, ni apoyarse en `withApi`.
+while IFS= read -r r; do
+  [ -z "$r" ] && continue
+  motivo=""
+  grep -q 'withApi' "$r" && motivo="usa withApi"
+  grep -qE '^export[[:space:]]+(async[[:space:]]+)?function' "$r" && motivo="exporta una función en vez de un handler de withAgent"
+  grep -qE '^export[[:space:]]*\{' "$r" && motivo="reexporta con export { … }"
+  exportados=0
+  while IFS= read -r linea; do
+    [ -z "$linea" ] && continue
+    exportados=$((exportados + 1))
+    handler=$(printf '%s' "$linea" | sed -nE 's/.*=>[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)\(req.*/\1/p')
+    if [ -z "$handler" ]; then motivo="un método exportado no delega en un handler: $linea"; continue; fi
+    [ "$handler" = "agentNotFound" ] && continue
+    grep -qE "^const ${handler}[[:space:]]*=[[:space:]]*withAgent" "$r" || motivo="el handler '$handler' no está construido con withAgent"
+  done < <(grep -E '^export const [A-Za-z]+[[:space:]]*=' "$r" | grep -vE '^export const (dynamic|runtime|revalidate)[[:space:]]*=')
+  [ "$exportados" -eq 0 ] && motivo="no exporta ningún método"
+  [ -n "$motivo" ] && check "NFR-3410: $r — $motivo (toda ruta de /api/agent pasa por withAgent)" 1
+done < <(find src/app/api/agent -name route.ts 2>/dev/null | sort)
+# Los tokens se crean, se listan y se revocan SOLO con scripts/agent-token.mjs: ninguna ruta HTTP
+# toca su tabla ni importa lo que los genera.
+if grep -rlE 'agentToken|"agent_token"|generateToken|server/agent/tokens' src/app 2>/dev/null | grep -q .; then
+  check "NFR-3410: una ruta HTTP toca la tabla o el generador de tokens (se gestionan solo con scripts/agent-token.mjs)" 1
+fi
 for r in $PUBLICAS_OK; do
   [ -f "$r" ] || check "RQ-SEC-104: la ruta pública $r ya no existe — revisa la lista PUBLICAS_OK" 1
 done

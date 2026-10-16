@@ -28,6 +28,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ── Better Auth: user / session / account / verification ─────────────────────────────
@@ -237,10 +238,23 @@ export const movement = pgTable(
     // Feature diario-de-celda (FR-2504): 'manual' (lo que el usuario registró) o 'adjustment' (lo
     // que nace de teclear un total en la celda). Las filas previas reciben 'manual' por el DEFAULT.
     kind: text("kind").notNull().default("manual"),
+    // Feature tony-ledger (FR-3409, FR-3413): quién registró un movimiento que no nació en la app.
+    // Las tres son NULL en todo movimiento manual. `agent_token_id` va SIN FK a propósito: revocar
+    // o borrar un token no debe tocar el libro.
+    originRef: text("origin_ref"),
+    agentTokenId: text("agent_token_id"),
+    agentName: text("agent_name"),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.id] }),
     index("movement_owner_created_idx").on(t.ownerId, t.createdAt),
+    // FR-3409: una referencia de origen es única por cuenta; los manuales (NULL) no chocan.
+    uniqueIndex("movement_owner_origin_uq").on(t.ownerId, t.originRef).where(sql`${t.originRef} IS NOT NULL`),
+    check("movement_origin_ref_ck", sql`${t.originRef} IS NULL OR char_length(${t.originRef}) between 1 and 128`),
+    check(
+      "movement_origin_ck",
+      sql`(${t.originRef} IS NULL AND ${t.agentTokenId} IS NULL AND ${t.agentName} IS NULL) OR (${t.originRef} IS NOT NULL AND ${t.agentTokenId} IS NOT NULL AND ${t.agentName} IS NOT NULL)`
+    ),
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
     check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
     check("movement_kind_ck", sql`${t.kind} in ('manual','adjustment')`),
@@ -250,6 +264,31 @@ export const movement = pgTable(
       "movement_amount_ck",
       sql`(${t.kind} = 'manual' AND ${t.amount} >= 1) OR (${t.kind} = 'adjustment' AND ${t.amount} <> 0 AND ${t.type} in ('expense','income'))`
     ),
+  ]
+);
+
+/**
+ * Feature tony-ledger (FR-3401/FR-3402, ADR-02). El acceso de un agente a UNA cuenta. Del token solo
+ * se guarda su hash SHA-256; `id` no es secreto (se lista, se registra en el log y se revoca). Se
+ * crea, se lista y se revoca SOLO desde `scripts/agent-token.mjs`: no hay ruta HTTP que lo haga.
+ * Espeja la migración 0013.
+ */
+export const agentToken = pgTable(
+  "agent_token",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("agent_token_owner_idx").on(t.ownerId),
+    check("agent_token_name_ck", sql`char_length(${t.name}) between 1 and 60`),
   ]
 );
 

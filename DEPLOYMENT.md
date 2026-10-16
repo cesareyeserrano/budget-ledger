@@ -144,7 +144,7 @@ It checks, and fails loudly if anything is off: (1) `/health` answers; (2) the r
 deployed commit, and that commit is the one on the remote branch; (3) the number of applied
 migrations equals the number of journal entries; (4) zero cells whose value differs from the sum of
 their movements; (5) zero movements whose period does not match their date; (6) given a backup, that
-**no** amount in `amount_cell` changed. For check 6 it writes two temporary copies of the amounts to
+**no** amount in `amount_cell` changed. (7) the agent door answers `404` through the public URL. For check 6 it writes two temporary copies of the amounts to
 a private directory (`umask 077`) and deletes them on exit.
 
 ### Migrations and their ordering constraints
@@ -270,6 +270,52 @@ Session cookies are `HttpOnly; Secure; SameSite`. Login is rate-limited (5 per 6
 sends HSTS, `X-Content-Type-Options: nosniff` and a CSP with `frame-ancestors 'none'`. CORS is
 restricted to `LEDGER_ALLOWED_ORIGINS` (never `*`). Every `/api/v1` route except the password
 recovery request requires a session; the `security-config` gate enforces it.
+
+## Agent door (optional)
+`/api/agent/v1` lets an agent — a program, with no browser — read the ledger and record movements
+with its own token. It is **off by default**; a deployment without an agent needs nothing from this
+section. The contract is in `docs/agent-api.md`.
+
+- **Switch.** `LEDGER_AGENT_API=on` enables it; any other value keeps it off (`404` on every route).
+- **Where it is served from.** Only from the addresses declared in `LEDGER_AGENT_SOURCES` (IPv4, or
+  IPv4 CIDR of `/16` or narrower, comma-separated). **No address is internal by default — not even
+  loopback.** The Next.js server sets `X-Forwarded-For` to the connecting address when the client
+  did not send it, and a proxy that rewrites that header sets it to the real client's address — so
+  what came through `tailscale serve` is not a declared source and gets `404`, with or without a
+  valid token.
+- **What this does and does not protect.** It keeps the door off the public front. It does **not**
+  authenticate a client that connects straight to the app's port: that client chooses the header,
+  so for it the token is the only barrier. Therefore: declare the agent's **fixed IP**, not a
+  subnet (the Docker network's gateway, `.1`, is the address published-port traffic arrives from);
+  never declare the tailnet range; and do not declare `127.0.0.1` in production — with a second
+  local proxy (Nginx behind `tailscale serve`) every external request arrives as loopback.
+- **Network.** `docker-compose.agent.yml` puts the app on a Docker network shared only with the
+  agent's container (alias `t-ledger`); the database is not on it. IPv4 only.
+
+  ```bash
+  docker network create --subnet 172.30.34.0/24 ledger-agent
+  docker compose -f docker-compose.yml -f docker-compose.agent.yml up -d
+  # .env:  LEDGER_AGENT_API=on   LEDGER_AGENT_SOURCES=172.30.34.10   (the agent's ipv4_address)
+  ```
+
+  Through that network the agent's container reaches the **whole** app over plain HTTP, not only
+  `/api/agent/v1`. Its token is useless there, but the sign-in route is reachable from it.
+
+- **Tokens.** Created, listed and revoked only from a terminal — no HTTP route does it:
+
+  ```bash
+  docker compose exec app node scripts/agent-token.mjs create <account-email> "<name>"
+  docker compose exec app node scripts/agent-token.mjs list   <account-email>
+  docker compose exec app node scripts/agent-token.mjs revoke <token-id>
+  ```
+
+  The token is printed once and only its hash is stored. Revoking takes effect on the next request.
+- **Emergency stop.** Revoke the token, or set `LEDGER_AGENT_API=` and restart the app.
+- **Verification.** `scripts/verificar-prod.sh` (check 7) confirms the door answers `404` through the
+  public URL — also when the request forges `X-Forwarded-For: 127.0.0.1` — and through the port
+  published on the host. A `401` in any of the three means the door is reachable from there and
+  only the token protects it. Confirm the positive path yourself, from the agent's container:
+  `GET http://t-ledger:3000/api/agent/v1/tree` with the token must answer `200`.
 
 ## Branches
 Three fixed branches, and no other long-lived ones:

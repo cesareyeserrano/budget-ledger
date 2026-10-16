@@ -1,0 +1,196 @@
+{
+  "files_created": [
+    "../../../docker-compose.agent.yml",
+    "../../../docs/agent-api.md",
+    "../../../drizzle/0013_agente.sql",
+    "../../../drizzle/meta/0013_snapshot.json",
+    "../../../scripts/agent-token.mjs",
+    "../../../src/app/api/agent/v1/tree/route.ts",
+    "../../../src/app/api/agent/v1/movements/route.ts",
+    "../../../src/app/api/agent/v1/movements/[key]/route.ts",
+    "../../../src/app/api/agent/v1/period/route.ts",
+    "../../../src/app/api/agent/v1/summary/route.ts",
+    "../../../src/server/agent/codes.ts",
+    "../../../src/server/agent/http.ts",
+    "../../../src/server/agent/limits.ts",
+    "../../../src/server/agent/origin.ts",
+    "../../../src/server/agent/responses.ts",
+    "../../../src/server/agent/schemas.ts",
+    "../../../src/server/agent/tokens.ts",
+    "../../../src/server/data/agentRepo.ts",
+    "../../../src/components/AgentTag.tsx",
+    "../../../tests/integration/backend/helpers/agente.ts",
+    "../../../tests/e2e/helpers/agente.ts",
+    "../../../tests/unit/agente-acceso.test.ts",
+    "../../../tests/unit/agente-lecturas.test.ts",
+    "../../../tests/unit/agente-escrituras.test.ts",
+    "../../../tests/unit/agente-contrato.test.ts",
+    "../../../tests/integration/tony-ledger-etiqueta.test.ts",
+    "../../../tests/integration/backend/agente-acceso.test.ts",
+    "../../../tests/integration/backend/agente-lecturas.test.ts",
+    "../../../tests/integration/backend/agente-consultas.test.ts",
+    "../../../tests/integration/backend/agente-escrituras.test.ts",
+    "../../../tests/integration/backend/agente-paridad.test.ts",
+    "../../../tests/integration/backend/agente-marca.test.ts",
+    "../../../tests/e2e/tony-ledger.spec.ts"
+  ],
+  "files_modified": [
+    "../../../.env.example",
+    "../../../docker-compose.yml",
+    "../../../drizzle/meta/_journal.json",
+    "../../../DEPLOYMENT.md",
+    "../../../scripts/secret-scan.sh",
+    "../../../scripts/security-config.sh",
+    "../../../scripts/verificar-prod.sh",
+    "../../../src/components/CellDetail.tsx",
+    "../../../src/components/mobile/LeafScreen.tsx",
+    "../../../src/domain/reserve.ts",
+    "../../../src/domain/types.ts",
+    "../../../src/server/data/ledgerRepo.ts",
+    "../../../src/server/db/schema.ts",
+    "../../../src/server/env.ts",
+    "../../../src/server/http.ts",
+    "../../../src/server/schemas.ts",
+    "../../../tests/e2e/helpers/globalSetup.ts",
+    "../../../tests/e2e-backend/helpers/globalSetup.ts",
+    "../../../src/server/clock.ts",
+    "../../../src/server/rateLimit.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate   # aplica la migración 0013 (aditiva) a la base de desarrollo",
+    "node scripts/agent-token.mjs create <correo-de-la-cuenta> \"<nombre>\"   # crea el token del agente; se muestra una sola vez"
+  ],
+  "environment_variables": [
+    {
+      "name": "LEDGER_AGENT_API",
+      "default": ""
+    },
+    {
+      "name": "LEDGER_AGENT_SOURCES",
+      "default": ""
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-3403",
+      "substitution": "ADR-06 se implementa mirando el VALOR de x-forwarded-for —una sola dirección, declarada en LEDGER_AGENT_SOURCES; ninguna es interna por defecto, tampoco el loopback— y no su PRESENCIA, como dice 02_SYSTEM_DESIGN.md. Además, todo método que una ruta no ofrece pasa también por la envoltura y responde 404 (el diseño decía 404/405). El documento de diseño conserva el texto de la regla vieja y la tabla de rechazos que la describe",
+      "reason": "El servidor de Next añade x-forwarded-for y x-forwarded-host a toda petición, así que la regla escrita en el diseño rechazaba todas las peticiones en un servidor real (medido en dev el 2026-10-13). La revisión adversarial mostró después que dar el loopback por interno abría la puerta con un segundo proxy local, y que Next contestaba OPTIONS y 405 sin pasar por la envoltura, delatando rutas con la puerta apagada. La intención de ADR-06, NFR-3411 y FR-3405 no cambia; TC-AGT-253e, 246f y 247h la cubren. Corregir el documento exige re-aprobar la fase 2, que invalida en cascada las fases 3 y 4. Variable que el diseño no nombra: LEDGER_AGENT_SOURCES.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3411",
+      "substitution": "La regla de «solo red interna» mantiene la puerta fuera del frente público, pero NO autentica a un cliente que conecta directo al puerto de la app: ese elige la cabecera x-forwarded-for, así que para él la única barrera es el token. Y que `tailscale serve` reescribe esa cabecera con la dirección del cliente real se comprueba contra producción con scripts/verificar-prod.sh (comprobación 7: URL pública, URL pública con la cabecera falsificada y puerto publicado en el host), no dentro de la suite",
+      "reason": "Un route handler de Next no ve la dirección del socket: solo la cabecera, que Next rellena únicamente si el cliente no la trajo. La separación de verdad es un listener o un sidecar que sirva solo /api/agent en la red del agente, y queda fuera de esta entrega. Mitigaciones hechas: ningún origen por defecto, bloques de /16 o más estrechos, la guía pide la IP fija del agente y no la subred, y la comprobación 7 falla si por cualquiera de los tres caminos la puerta contesta algo distinto de 404. Derivado, también sin resolver: por la red Docker compartida el contenedor del agente alcanza TODA la app en HTTP plano (el inicio de sesión incluido), no solo la puerta.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3406",
+      "substitution": "El cubo de intentos con token inválido es uno solo, global, y no uno por dirección de origen como dice el criterio de aceptación",
+      "reason": "Un route handler de Next no ve la IP del socket, y una petición que trae la dirección de otro origen en x-forwarded-for se rechaza antes de mirar el token (ADR-06), así que no hay una dirección fiable por la que separar. El cubo solo se consulta cuando el token NO resolvió: agotarlo no deja fuera a un token válido (TC-AGT-063f).",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3409",
+      "substitution": "El «reinicio del servidor» de TC-AGT-095h y TC-AGT-137h se hace en proceso: se cierra el cliente de base de la app y se recargan todos sus módulos, en vez de matar y volver a arrancar el proceso",
+      "reason": "El arnés de integración llama a las rutas en proceso y no tiene un servidor que reiniciar. Lo que el caso afirma —que la referencia y la marca viven en Postgres y no en memoria— queda probado igual: tras el descarte lo único que sobrevive es la base.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3402",
+      "substitution": "TC-AGT-024e comprueba la regla de «último uso como mucho una vez por minuto» contra Postgres real, atrasando la marca 61 segundos por SQL, en vez de con un reloj inyectado y un contador de UPDATE",
+      "reason": "La regla vive en la propia sentencia SQL (last_used_at < now() - 60 s), que es lo que la hace correcta con varias conexiones a la vez; no hay un reloj de la aplicación que inyectar. La prueba afirma el mismo observable: cinco resoluciones seguidas dejan una sola marca y la sexta, pasado el minuto, la mueve.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3414",
+      "substitution": "El caso de 375 px (TC-AGT-141e) se prueba en la pantalla de la categoría del teléfono, y compara la fila del agente con una fila manual en vez de exigir scrollWidth ≤ clientWidth en la fila",
+      "reason": "A 375 px el Detalle de celda del escritorio no existe: la lista de movimientos del teléfono es LeafScreen, y la etiqueta se añadió también ahí. Esa fila ya medía 8 px más de scrollWidth que de ancho antes de esta feature, por el margen negativo del botón del lápiz; la prueba exige que la etiqueta no la ensanche ni saque nada de la pantalla.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3403",
+      "substitution": "TC-AGT-034f y TC-AGT-247h, planeados como integración y unitaria, se ejecutan como e2e contra el build de producción (tests/e2e/tony-ledger.spec.ts)",
+      "reason": "Que una ruta o un método inexistentes respondan 404/405 y que todo handler exija token solo se puede observar pasando por el enrutador de Next; en proceso no hay enrutador. Es una prueba más fuerte que la planeada, no una más débil.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3415",
+      "substitution": "El criterio pide «el resumen y el registro responden en ≤ 1000 ms». No hay ninguna prueba que mida tiempo: TC-AGT-262e, 267h y 268f afirman TRABAJO —el mismo número de sentencias SQL con un libro de 12 nodos que con uno de 60 nodos y 24 periodos, y cero escrituras en las lecturas—",
+      "reason": "Un tiempo de reloj afirmado dentro de la suite mide al arnés y cae bajo instrumentación de cobertura con el código sano; es la regla del propio plan de pruebas. El conteo detecta lo que el umbral quería detectar (una consulta por nodo o por periodo). Lo que queda sin medir es el coste de cómputo con el libro real: cada petición carga el libro entero, con todos sus movimientos históricos.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3409",
+      "substitution": "El reintento se compara contra el movimiento TAL COMO ESTÁ AHORA, no contra el cuerpo que lo creó: si el dueño lo corrigió en la app, reintentar el cuerpo original responde 409 reference_conflict (con el movimiento vigente en el detalle) en vez de 200; y si el dueño lo borró, la referencia queda libre y un reintento tardío lo crea de nuevo",
+      "reason": "Distinguirlo exige guardar con la marca una huella del cuerpo original y una lápida de las referencias borradas: una columna y una tabla más que el diseño no contempla. No se duplica dinero en ningún caso mientras el movimiento exista. El contrato (docs/agent-api.md) le dice al agente cómo leer ese 409 y que no reintente lo que el dueño ya pudo revisar.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-3414",
+      "substitution": "TC-AGT-212f no afirma la cifra del Balance (su plan pedía «el Balance muestra el mismo Disponible que GET /api/v1/ledger permite derivar») y TC-AGT-200h no afirma que la cookie de sesión conserve nombre y atributos",
+      "reason": "212f comprueba que en grilla, Detalle y teléfono no aparece ninguna etiqueta y que la celda vale lo sembrado; la igualdad de cifras con y sin marca la prueban TC-AGT-211e (dominio) y TC-AGT-156e (resumen contra el rango de la pantalla). La cookie la gestiona Better Auth, que esta feature no toca, y la cubren las pruebas de autenticación existentes.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/unit/agente-acceso.test.ts",
+    "../../../tests/unit/agente-lecturas.test.ts",
+    "../../../tests/unit/agente-escrituras.test.ts",
+    "../../../tests/unit/agente-contrato.test.ts",
+    "../../../tests/integration/tony-ledger-etiqueta.test.ts",
+    "../../../tests/integration/backend/agente-acceso.test.ts",
+    "../../../tests/integration/backend/agente-lecturas.test.ts",
+    "../../../tests/integration/backend/agente-consultas.test.ts",
+    "../../../tests/integration/backend/agente-escrituras.test.ts",
+    "../../../tests/integration/backend/agente-paridad.test.ts",
+    "../../../tests/integration/backend/agente-marca.test.ts",
+    "../../../tests/e2e/tony-ledger.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true
+    },
+    {
+      "name": "security-config",
+      "command": "../../../scripts/security-config.sh",
+      "required": true
+    },
+    {
+      "name": "secret-scan",
+      "command": "../../../scripts/secret-scan.sh",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000
+    }
+  ]
+}

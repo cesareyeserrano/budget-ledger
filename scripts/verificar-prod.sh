@@ -15,6 +15,8 @@
 #   4. Cero celdas descuadradas (FR-2511): celda = suma de sus movimientos.
 #   5. Cero movimientos cuyo periodo no case con su fecha.
 #   6. Si se le pasa un respaldo, que NINGUNA cifra de `amount_cell` haya cambiado respecto a él.
+#   7. La puerta para agentes (/api/agent/v1) NO se alcanza por la URL pública, ni falsificando
+#      X-Forwarded-For, ni por el puerto publicado en el host.
 #
 # USO (desde el Mac, o dentro de Ultron):
 #   ssh ultron 'cd ~/apps/budget-ledger && scripts/verificar-prod.sh'
@@ -117,6 +119,38 @@ PY
     fallo "las cifras cambiaron respecto al respaldo ($ANTES celdas antes, $AHORA ahora):"
     diff "$TMP/antes.txt" "$TMP/ahora.txt" | head -10
   fi
+fi
+
+echo
+
+echo "── 7. La puerta para agentes no se alcanza desde fuera"
+# Feature tony-ledger (ADR-06). La superficie /api/agent/v1 solo atiende a los orígenes declarados
+# en LEDGER_AGENT_SOURCES. Por cualquier otro camino tiene que responder 404, esté encendida o
+# apagada. Un 401 significa que por ese camino la puerta SÍ se alcanza y solo la protege el token.
+# Tres caminos, y los tres cuentan:
+#   a) la URL pública, tal cual;
+#   b) la URL pública FALSIFICANDO X-Forwarded-For: caza un frente que deja pasar la cabecera del
+#      cliente en vez de reescribirla (reenvío TCP, un proxy sin `forwardfor`, dos proxies en fila);
+#   c) el puerto publicado en el host: caza una subred declarada que incluye la puerta de enlace
+#      de Docker, por donde entra ese tráfico.
+puerta() { curl -s -o /dev/null -m 15 -w '%{http_code}' "$@" 2>/dev/null || echo "000"; }
+juzgar() { # $1 = código, $2 = nombre del camino
+  if [ "$1" = "404" ]; then ok "/api/agent/v1 responde 404 por $2"
+  elif [ "$1" = "000" ]; then echo "  ⏭  sin respuesta por $2: compruébalo a mano"
+  else fallo "/api/agent/v1 respondió $1 por $2 — la puerta del agente se alcanza por ahí (revisa LEDGER_AGENT_SOURCES y el frente)"
+  fi
+}
+if ! command -v curl >/dev/null 2>&1; then
+  echo "  ⏭  curl no está instalado: no se puede probar la puerta"
+else
+  if [ -z "${BETTER_AUTH_URL:-}" ]; then
+    echo "  ⏭  sin BETTER_AUTH_URL en el entorno: no se puede probar la URL pública"
+  else
+    PUBLICA="${BETTER_AUTH_URL%/}/api/agent/v1/tree"
+    juzgar "$(puerta "$PUBLICA")" "la URL pública"
+    juzgar "$(puerta -H 'X-Forwarded-For: 127.0.0.1' "$PUBLICA")" "la URL pública con X-Forwarded-For falsificado"
+  fi
+  juzgar "$(puerta http://127.0.0.1:3000/api/agent/v1/tree)" "el puerto publicado en el host"
 fi
 
 echo

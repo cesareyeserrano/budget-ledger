@@ -1251,6 +1251,23 @@
         }
       ],
       "updatedAt": "2026-10-09T23:35:36.539Z"
+    },
+    {
+      "id": "BL-095",
+      "title": "Abrir el proyecto aparte Agent-L (repo privado, con su propio Aitri) cuando la puerta de agentes este construida",
+      "priority": "P1",
+      "problem": "Decision del usuario del 2026-10-13: el agente (copia tledger del perfil Hermes, se llamara Agent-L) se gestiona en un proyecto APARTE y privado; en T-Ledger solo vive la integracion (feature tony-ledger: superficie /api/agent/v1). El proyecto del agente lleva su documentacion, su codigo y sus pruebas de comportamiento (correos inventados, duplicados, traslados en dos avisos, 4x1000, pendientes, cuentas por pagar) y una pasada contra el T-Ledger de dev. Antes del primer commit: sacar del codigo el buzon, el id del chat de Telegram y los digitos de las cuentas a un archivo de secretos; re-igualar la copia con el original (4x1000 y cambios del SKILL posteriores al 26-sep). Orden acordado: 1) terminar la feature tony-ledger aqui, 2) abrir el proyecto Agent-L, 3) prueba conjunta en dev con admin@admin.com. El contrato que une a los dos es docs/agent-api.md.",
+      "status": "open",
+      "createdAt": "2026-10-13T19:33:32.796Z"
+    },
+    {
+      "id": "BL-096",
+      "title": "Marca del agente: icono de bot en vez de la etiqueta de texto",
+      "priority": "P2",
+      "problem": "Observacion del usuario el 2026-10-13 al probar tony-ledger en dev: la etiqueta con el nombre del agente ocupa espacio y parece un comentario mas que una marca. Pide un icono de bot, con el nombre del agente al pasar el cursor o al tocarlo y como texto accesible. Decision del usuario: mejora aparte y chica, SIN abrir una feature. Ojo: cambia el criterio aprobado de FR-3414 de tony-ledger ('la etiqueta es texto, no solo color o icono') y las pruebas que buscan el texto visible (tests/integration/tony-ledger-etiqueta.test.ts, tests/e2e/tony-ledger.spec.ts); hay que ajustarlas en el mismo cambio y dejar constancia de la desviacion.",
+      "status": "closed",
+      "createdAt": "2026-10-14T01:54:01.635Z",
+      "closedAt": "2026-10-14T02:31:20.074Z"
     }
   ]
 }

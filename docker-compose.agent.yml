@@ -1,0 +1,35 @@
+# T-Ledger — red interna para la puerta de agentes (feature tony-ledger). OPCIONAL.
+#
+# Se usa ENCIMA del compose de producción, solo en un despliegue que tenga un agente:
+#
+#   docker network create --subnet 172.30.34.0/24 ledger-agent        # una sola vez
+#   docker compose -f docker-compose.yml -f docker-compose.agent.yml up -d
+#
+# y en el .env:   LEDGER_AGENT_API=on   y   LEDGER_AGENT_SOURCES=172.30.34.10
+#
+# LEDGER_AGENT_SOURCES lleva la IP FIJA del contenedor del agente (aquí, 172.30.34.10; el agente la
+# pide en su compose con `ipv4_address`), NO la subred: la puerta de enlace de la red (.1) es la
+# dirección con la que entra al contenedor el tráfico del puerto publicado en el host.
+#
+# Qué hace: mete la app en una red Docker que comparte SOLO con el contenedor del agente, con el
+# alias `t-ledger`. El agente la llama en http://t-ledger:3000/api/agent/v1 sin pasar por el frente
+# público. La base de datos NO está en esta red: el agente nunca la alcanza.
+#
+# El contenedor del agente se une a la misma red desde SU compose (red externa `ledger-agent`, con
+# su `ipv4_address`). La subred es un ejemplo: usa una libre. Solo IPv4: una red Docker IPv6 no se
+# reconoce como interna.
+#
+# OJO: por esta red el contenedor del agente alcanza TODA la app en HTTP plano, no solo
+# /api/agent/v1 (por ejemplo el inicio de sesión). El token no sirve ahí, pero conviene saberlo.
+services:
+  app:
+    networks:
+      default: {}
+      ledger-agent:
+        aliases:
+          - t-ledger
+
+networks:
+  ledger-agent:
+    external: true
+    name: ledger-agent

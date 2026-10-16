@@ -62,7 +62,7 @@ interface ApiOptions<T> {
  * @returns `null` si el cuerpo supera `max`; si no, `{ raw }` — `raw` es `undefined` cuando el JSON
  *   no se puede leer, que el esquema rechaza después con 422, igual que antes.
  */
-async function leerJson(req: Request, max: number): Promise<{ raw: unknown } | null> {
+export async function leerJson(req: Request, max: number): Promise<{ raw: unknown } | null> {
   if (Number(req.headers.get("content-length") ?? NaN) > max) return null;
   if (!req.body) return { raw: undefined };
   const lector = req.body.getReader();

@@ -12,6 +12,7 @@
 import "server-only";
 import { and, asc, desc, eq, like, sql } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
+import { testFailAfter } from "../clock";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairMovementCats, repairOrphanedCellNotes, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
@@ -28,14 +29,14 @@ import {
 import { currentPeriodFor } from "@/lib/date";
 import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
 import { worsenedBy } from "@/domain/guard";
-import { convertPlannedRetiros, isPlannedRetiroKey, type ReserveWarning } from "@/domain/reserve";
+import { AVAILABLE_ID, applyReserveOp, convertPlannedRetiros, isPlannedRetiroKey, type ReserveVerdict, type ReserveWarning } from "@/domain/reserve";
 import {
   closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
 import { normalizeOpeningBalance, normalizeStartMonth } from "@/domain/opening";
 import { closedStartBlocker, newlyOrphanedByStart } from "@/domain/openingGuard";
 import { seedSeqFrom } from "@/domain/ids";
-import type { Closure, CycleConfig, CycleVersion, OriginPart
+import type { Closure, CycleConfig, CycleVersion, MovementOrigin, OriginPart
 } from "@/domain/types";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
@@ -178,6 +179,11 @@ function rowsToState(
     // FR-2504: solo el ajuste se marca. 'manual' es la ausencia del campo, así que un ledger previo
     // se lee exactamente igual que antes de la migración 0009.
     ...(r.kind === "adjustment" ? { kind: "adjustment" as const } : {}),
+    // FR-3413: la marca de un movimiento registrado por un agente. Las tres columnas van juntas
+    // (CHECK movement_origin_ck), así que con la referencia basta para saber que están.
+    ...(r.originRef != null && r.agentTokenId != null && r.agentName != null
+      ? { origin: { ref: r.originRef, agentId: r.agentTokenId, agentName: r.agentName } }
+      : {}),
   }));
 
   // FR-1012: observaciones manuales por celda.
@@ -609,6 +615,11 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
     // FR-2504: el snapshot se BORRA y se reinserta en cada guardado, así que sin esta línea el
     // `kind` se perdería en el primer PUT y un ajuste negativo chocaría con el CHECK de la 0009.
     kind: m.kind ?? "manual",
+    // FR-3413: el snapshot se borra y se reinserta, así que la marca del agente viaja con el
+    // movimiento. Quien llama desde el PUT ya la repuso desde lo guardado (`conservarOrigen`).
+    originRef: m.origin?.ref ?? null,
+    agentTokenId: m.origin?.agentId ?? null,
+    agentName: m.origin?.agentName ?? null,
   }));
 
   for (let i = 0; i < nodeValues.length; i += INSERT_CHUNK) {
@@ -708,6 +719,38 @@ export function periodMismatches(state: LedgerState, calBase: Calendar, prev?: L
   return ids;
 }
 
+/**
+ * La marca de origen de un movimiento la pone y la conserva SOLO el servidor (feature tony-ledger,
+ * FR-3413, ADR-03). El snapshot del navegador se borra y se reinserta entero, así que lo que el
+ * cuerpo diga de `origin` no cuenta: a cada movimiento entrante se le pone el `origin` del
+ * movimiento GUARDADO con su mismo id, o ninguno si el guardado no lo tiene.
+ *
+ * Con eso un guardado no puede inventar la marca en un movimiento manual, ni cambiarla, ni quitarla
+ * de uno del agente — y una pestaña con código anterior, que reenvía los movimientos sin `origin`,
+ * tampoco la pierde. Lo único que el navegador puede hacer con un movimiento del agente es editarlo
+ * o borrarlo entero, como cualquier otro.
+ *
+ * @param prev Estado guardado (lo que el servidor leyó).
+ * @param next Estado entrante (lo que mandó el cliente).
+ * @returns El entrante con el origen autoritativo. El mismo objeto si no hay nada que reponer.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3413, US-ID: US-3413, AC-ID: AC-3413b, TC-ID: TC-AGT-131h, TC-AGT-133f, TC-AGT-135e
+ */
+export function conservarOrigen(prev: LedgerState, next: LedgerState): LedgerState {
+  const guardados = new Map(prev.movements.filter((m) => m.origin).map((m) => [m.id, m.origin!]));
+  if (guardados.size === 0 && !next.movements.some((m) => m.origin)) return next;
+  return {
+    ...next,
+    movements: next.movements.map((m) => {
+      const { origin: _delCliente, ...resto } = m;
+      void _delCliente;
+      const origin = guardados.get(m.id);
+      return origin ? { ...resto, origin } : resto;
+    }),
+  };
+}
+
 /** Devuelve `next` con el plano de Presupuestado repuesto en los comentarios que lo tienen en `prev`. */
 function conservarPlanoDeComentarios(prev: LedgerState, next: LedgerState): LedgerState {
   const dePresupuesto = new Set<string>();
@@ -787,6 +830,9 @@ export async function saveLedger(
     // comentario de celda, así que el que llega sin plano y está GUARDADO como de Presupuestado lo sigue
     // siendo. Los ids sobreviven a mover un nodo y a cambiar de periodo.
     if (prev) state = conservarPlanoDeComentarios(prev, state);
+    // FR-3413: lo mismo con la marca de los movimientos del agente. Sin estado previo (primer
+    // guardado) no hay marca que conservar y la que traiga el cuerpo se descarta.
+    state = conservarOrigen(prev ?? { ...state, movements: [] }, state);
     const cal = calendarOf(state);
     const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
     const mismatch = periodMismatches(state, cal, prev);
@@ -965,18 +1011,48 @@ export async function getMovement(ownerId: string, id: string): Promise<Movement
  *
  * @aitri-trace FR-ID: FR-1004, US-ID: US-1004, AC-ID: AC-1004c, TC-ID: TC-TRF-304e
  */
-export async function insertMovement(
-  ownerId: string,
-  input: NewMovement
-): Promise<
+export async function insertMovement(ownerId: string, input: NewMovement): Promise<InsertMovementResult> {
+  // El cuerpo vive en `insertMovementWith`, que comparte con la puerta para agentes (feature
+  // tony-ledger, NFR-3404): una sola secuencia de guardias para las dos vías. Aquí el plan es
+  // trivial —el movimiento ya viene resuelto— y no hay salida temprana, así que el tipo no cambia.
+  return (await insertMovementWith<never>(ownerId, () => ({ input }))) as InsertMovementResult;
+}
+
+/** Lo que devuelve registrar un movimiento. `null` = el dominio lo rechazó sin más detalle. */
+export type InsertMovementResult =
   | { movement: Movement; revision: number }
   | { closedViolation: true }
   | { domainViolation: true; violations: ReserveWarning[] }
   | { periodMismatch: true; expected: PeriodKey | null }
   | { invalidTarget: true }
   | { noLedger: true }
-  | null
-> {
+  | null;
+
+/**
+ * El movimiento a registrar, decidido DESPUÉS de leer el estado y con la fila del libro bloqueada.
+ * `origin` lo marca como registrado por un agente. `early` corta sin escribir: lo usa la puerta
+ * para agentes cuando la referencia ya existe (FR-3409) o cuando no puede resolver el destino.
+ */
+export type InsertPlan<E> = { input: NewMovement; origin?: MovementOrigin } | { early: E };
+
+/**
+ * Registra un movimiento con la mutación pura del dominio y TODOS los guardias del servidor, en una
+ * transacción con `FOR UPDATE` sobre la fila del libro. Es el cuerpo de `insertMovement` (la API
+ * del navegador) y de la puerta para agentes: las dos vías aceptan y rechazan lo mismo porque
+ * ejecutan este mismo código (NFR-3404).
+ *
+ * @param ownerId Usuario dueño del libro — nunca sale del cuerpo de la petición.
+ * @param plan Recibe el estado guardado y la revisión, y devuelve el movimiento a registrar o una
+ *   salida temprana. Corre DENTRO del bloqueo: lo que lea no puede cambiar antes de escribir.
+ * @returns El movimiento y la revisión nueva, el motivo del rechazo, o `{ early }`.
+ * @throws Si la base falla; la transacción revierte entera.
+ *
+ * @aitri-trace FR-ID: FR-3408, US-ID: US-3408, AC-ID: AC-3408a, TC-ID: TC-AGT-080h, TC-AGT-081h, TC-AGT-215h, TC-AGT-216f
+ */
+export async function insertMovementWith<E>(
+  ownerId: string,
+  plan: (prev: LedgerState, revision: number) => InsertPlan<E>
+): Promise<InsertMovementResult | { early: E }> {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
     // BG-079 (d): un usuario que todavía no guardó su ledger no tiene dónde registrar. No es un fallo
@@ -1002,6 +1078,9 @@ export async function insertMovement(
     const prev: LedgerState = cycles.versions.length > 0 ? { ...conApertura, cycles } : conApertura;
     // BG-064: un gasto o ingreso sobre una categoría que no existe, no es hoja o no es de su tipo se
     // rechaza con su propio motivo — el cliente tiene que poder distinguirlo de un monto inválido.
+    const planeado = plan(prev, head.revision);
+    if ("early" in planeado) return { early: planeado.early };
+    const { input, origin } = planeado;
     if (input.type !== "transfer" && !movementTargetOk(prev.nodes, input)) return { invalidTarget: true as const };
     const cal = calendarOf(prev, input.period);
     // Feature ciclos (FR-2405, FR-2406, NFR-2408): el periodo tiene que ser el de la fecha (o el
@@ -1027,7 +1106,25 @@ export async function insertMovement(
     }
 
     const next = addMovement(prev, input, closureScope(prev, input.period));
-    if (next === prev) return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
+    if (next === prev) {
+      // A un agente hay que decirle POR QUÉ (FR-3410): la regla y el límite son lo que le permite
+      // contárselo al dueño. `addMovement` se traga el veredicto, así que se le pregunta otra vez a
+      // la misma función que lo emitió. La API del navegador conserva su respuesta de siempre.
+      if (origin && input.type === "transfer") {
+        const r = applyReserveOp(prev, {
+          from: input.from ?? AVAILABLE_ID, to: input.to ?? (input.subId ?? input.catId),
+          period: input.period, amount: Number(input.amount),
+        }, closureScope(prev, input.period));
+        if ("rejected" in r) {
+          if (r.rejected === "invalid_target") return { invalidTarget: true as const };
+          if (!r.rejected.ok) {
+            const { rule, period, leafId, limit } = r.rejected;
+            return { domainViolation: true as const, violations: [{ rule, period, ...(leafId ? { leafId } : {}), limit }] };
+          }
+        }
+      }
+      return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
+    }
 
     // EL GUARDIA DE DOMINIO en la segunda vía (FR-2101). Un movimiento de tipo `transfer` ya venía
     // validado —`addMovement` delega en `applyReserveOp`, que aplica techo y piso y devuelve el
@@ -1038,7 +1135,8 @@ export async function insertMovement(
     const violations = worsenedBy(prev, next, scope);
     if (violations.length > 0) return { domainViolation: true as const, violations };
 
-    const mv = next.movements[0]; // addMovement hace unshift: el nuevo va primero
+    // addMovement hace unshift: el nuevo va primero. La marca de origen la pone el servidor (FR-3413).
+    const mv: Movement = origin ? { ...next.movements[0], origin } : next.movements[0];
     await tx.insert(movement).values({
       ownerId,
       id: mv.id,
@@ -1053,7 +1151,13 @@ export async function insertMovement(
       note: mv.note ?? null,
       fromId: mv.from ?? null,
       toId: mv.to ?? null,
+      originRef: origin?.ref ?? null,
+      agentTokenId: origin?.agentId ?? null,
+      agentName: origin?.agentName ?? null,
     });
+    // SOLO PRUEBAS: fuerza un fallo a mitad de la transacción para comprobar que revierte entera.
+    // Paso propio: el de la reubicación de ciclos (`first_insert`) no debe cortar también esto.
+    testFailAfter("movement_insert");
 
     // Upsert de TODAS las celdas `actual` cuyo valor cambió con la mutación (diff completo):
     // un gasto/ingreso toca una; una operación de reserva De→A, hasta dos (FR-1004).
@@ -1082,7 +1186,7 @@ export async function insertMovement(
 export type MovementWriteResult =
   | { ok: true; movement: Movement; revision: number }
   | { ok: false; notFound: true }
-  | { ok: false; rejected: "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+  | { ok: false; rejected: "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "cell_already_changed" }
   | { ok: false; closedViolation: true; periods: PeriodKey[] }
   | { ok: false; negativeCell: true; cells: NegativeCell[] }
   | { ok: false; cellMismatch: true; cells: { nodeId: string; period: PeriodKey; cell: number; sum: number }[] }
@@ -1100,10 +1204,48 @@ export type MovementWriteResult =
 async function writeMovement(
   ownerId: string,
   id: string,
-  mutar: (prev: LedgerState, cal: Calendar, scope: readonly PeriodKey[]) =>
-    | { state: LedgerState }
-    | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
-    | { rejected: "negative_cell"; cells: NegativeCell[] }
+  mutar: (prev: LedgerState, cal: Calendar, scope: readonly PeriodKey[]) => MovementMutation
+): Promise<MovementWriteResult> {
+  return writeMovementWith(ownerId, (state) => state.movements.find((m) => m.id === id), mutar);
+}
+
+/** Lo que puede devolver la mutación pura que se le pasa a `writeMovementWith`. */
+export type MovementMutation =
+  | { state: LedgerState }
+  | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "cell_already_changed" }
+  | { rejected: "negative_cell"; cells: NegativeCell[] }
+  | { rejected: ReserveVerdict };
+
+/** Lo que la puerta para agentes le pide de más al cuerpo compartido de editar y borrar. */
+export interface WriteMovementOpts {
+  /** Solo movimientos registrados por un agente; uno manual se contesta como inexistente (FR-3411). */
+  soloDeAgente?: boolean;
+  /** Admite movimientos de bolsillo: deshacer una reserva, un retiro o un mover (FR-3412). */
+  bolsillos?: boolean;
+  /** Periodo al que la mutación puede llevar el movimiento; se añade al rango que la juzga. */
+  destino?: (prev: LedgerState) => PeriodKey | null;
+}
+
+/**
+ * El cuerpo de `writeMovement`, con el movimiento localizado por una función —por id, o por su
+ * referencia de origen— dentro del estado del DUEÑO y con la fila del libro ya bloqueada. Lo usan
+ * las dos vías: la API del navegador (por id, sin opciones: su comportamiento no cambia) y la
+ * puerta para agentes (NFR-3404).
+ *
+ * @param ownerId Usuario dueño del libro.
+ * @param localizar Devuelve el movimiento a tocar, o `undefined` si no está en esta cuenta.
+ * @param mutar La mutación pura del dominio; recibe también el movimiento localizado.
+ * @param opts Restricciones y permisos de la puerta para agentes.
+ * @returns El movimiento resultante y la revisión nueva, o el motivo del rechazo.
+ * @throws Si la base falla; la transacción revierte entera.
+ *
+ * @aitri-trace FR-ID: FR-3411, US-ID: US-3411, AC-ID: AC-3411a, TC-ID: TC-AGT-110h, TC-AGT-112f, TC-AGT-120h, TC-AGT-123f
+ */
+export async function writeMovementWith(
+  ownerId: string,
+  localizar: (state: LedgerState) => Movement | undefined,
+  mutar: (prev: LedgerState, cal: Calendar, scope: readonly PeriodKey[], actual: Movement) => MovementMutation,
+  opts: WriteMovementOpts = {}
 ): Promise<MovementWriteResult> {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
@@ -1114,14 +1256,18 @@ async function writeMovement(
 
     // Dueño: el movimiento se busca DENTRO del estado del owner, así que uno ajeno simplemente no
     // está — 404 indistinguible de inexistente, sin filtrar si existe en otra cuenta (NFR-2501).
-    const actual = prev.movements.find((m) => m.id === id);
+    const actual = localizar(prev);
     if (!actual) return { ok: false, notFound: true };
+    // FR-3411/FR-3412: un agente solo toca lo que registró un agente. Lo manual, para él, no existe:
+    // el mismo 404 que un id inventado, sin decir cuál de las dos cosas pasó.
+    if (opts.soloDeAgente && !actual.origin) return { ok: false, notFound: true };
+    const id = actual.id;
 
     // TIPO antes que CIERRE (TC-DDC-328e), y el orden tiene consecuencia: un movimiento de bolsillo
     // en un mes cerrado no se edita por aquí NI aunque se reabra el mes, así que responder «mes
     // cerrado» mandaría al usuario a reabrirlo para nada. Lo primero que se le dice es lo que de
     // verdad le bloquea.
-    if (actual.type === "transfer") return { ok: false, rejected: "unsupported_type" };
+    if (actual.type === "transfer" && !opts.bolsillos) return { ok: false, rejected: "unsupported_type" };
 
     // CIERRE, antes que nada de lo que el cambio provoque. Se mira el periodo DE ORIGEN aquí; el de
     // destino lo caza `closedPeriodsViolated` más abajo, sobre el estado ya mutado.
@@ -1130,11 +1276,22 @@ async function writeMovement(
       return { ok: false, closedViolation: true, periods: [actual.period] };
     }
 
-    const scope = closureScope(prev, actual.period);
-    const res = mutar(prev, cal, scope);
+    const haciaDonde = opts.destino?.(prev) ?? null;
+    const scope = haciaDonde
+      ? unionScope(prev, closureScope(prev, actual.period), closureScope(prev, haciaDonde))
+      : closureScope(prev, actual.period);
+    const res = mutar(prev, cal, scope, actual);
     if ("rejected" in res) {
       if (res.rejected === "not_found") return { ok: false, notFound: true };
-      if (res.rejected === "negative_cell") return { ok: false, negativeCell: true, cells: res.cells };
+      if (res.rejected === "negative_cell") {
+        return { ok: false, negativeCell: true, cells: "cells" in res ? res.cells : [] };
+      }
+      // Un veredicto de reserva (techo, piso, déficit): la misma forma que ya emite el guardia.
+      if (typeof res.rejected === "object") {
+        if (res.rejected.ok) return { ok: false, rejected: "invalid_target" };
+        const { rule, period, leafId, limit } = res.rejected;
+        return { ok: false, domainViolation: true, violations: [{ rule, period, ...(leafId ? { leafId } : {}), limit }] };
+      }
       return { ok: false, rejected: res.rejected };
     }
     const next = res.state;
